@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { ScanLine, Camera, CheckCircle, XCircle, Clock, ArrowLeft, LogOut, User } from "lucide-react";
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import QrScanner from "qr-scanner";
 import LoginForm from "@/components/LoginForm";
 import { authUtils } from "../lib/auth";
@@ -260,7 +260,7 @@ const Scan = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 py-8">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between mb-6">
-          <Link to="/" className="inline-flex items-center text-primary hover:text-primary/80">
+          <Link href="/" className="inline-flex items-center text-primary hover:text-primary/80">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Home
           </Link>

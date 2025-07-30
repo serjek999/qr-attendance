@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { BookOpen, Users, Calendar, Clock, Search, ArrowLeft, Download } from "lucide-react";
-import { Link } from "react-router-dom";
+import { BookOpen, Users, Calendar, Clock, Search, ArrowLeft, Download, Eye, EyeOff } from "lucide-react";
+import Link from "next/link";
 import { authUtils } from "../lib/auth";
 
 const Faculty = () => {
@@ -21,6 +21,7 @@ const Faculty = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [user, setUser] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
 
   const handleLogin = async (e) => {
@@ -171,7 +172,7 @@ const Faculty = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 py-8">
         <div className="container mx-auto px-4">
-          <Link to="/" className="inline-flex items-center text-primary hover:text-primary/80 mb-6">
+          <Link href="/" className="inline-flex items-center text-primary hover:text-primary/80 mb-6">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Home
           </Link>
@@ -204,14 +205,28 @@ const Faculty = () => {
                   
                   <div className="space-y-2">
                     <Label htmlFor="password">Password</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="Enter your password"
-                      value={loginData.password}
-                      onChange={(e) => setLoginData(prev => ({ ...prev, password: e.target.value }))}
-                      required
-                    />
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Enter your password"
+                        value={loginData.password}
+                        onChange={(e) => setLoginData(prev => ({ ...prev, password: e.target.value }))}
+                        required
+                        className="pr-10 transition-all duration-300 focus:ring-2 focus:ring-primary/20"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                   
                   <Button type="submit" variant="academic" className="w-full" disabled={isLoading}>
@@ -229,13 +244,7 @@ const Faculty = () => {
                   </Button>
                 </form>
                 
-                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-sm text-blue-800">
-                    <strong>Demo Credentials:</strong><br />
-                    Username: faculty<br />
-                    Password: password
-                  </p>
-                </div>
+
               </CardContent>
             </Card>
           </div>
@@ -250,7 +259,7 @@ const Faculty = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 py-8">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between mb-8">
-          <Link to="/" className="inline-flex items-center text-primary hover:text-primary/80">
+          <Link href="/" className="inline-flex items-center text-primary hover:text-primary/80">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Home
           </Link>

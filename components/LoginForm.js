@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { User, Lock, Eye, EyeOff, Shield, ArrowLeft } from "lucide-react";
-import { Link } from "react-router-dom";
+import Link from "next/link";
 
 const LoginForm = ({ onLogin }) => {
   const [credentials, setCredentials] = useState({
@@ -46,7 +46,7 @@ const LoginForm = ({ onLogin }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 py-8">
       <div className="container mx-auto px-4">
-        <Link to="/" className="inline-flex items-center text-primary hover:text-primary/80 mb-6">
+        <Link href="/" className="inline-flex items-center text-primary hover:text-primary/80 mb-6">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Home
         </Link>
@@ -130,13 +130,7 @@ const LoginForm = ({ onLogin }) => {
                 </Button>
               </form>
 
-              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <h4 className="font-medium text-blue-900 mb-2">Demo Credentials:</h4>
-                <div className="text-sm text-blue-800 space-y-1">
-                  <div><strong>Username:</strong> sbo</div>
-                  <div><strong>Password:</strong> attendance2024</div>
-                </div>
-              </div>
+
             </CardContent>
           </Card>
         </div>

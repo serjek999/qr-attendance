@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { GraduationCap, Users, ScanLine, BookOpen } from "lucide-react";
-import { Link } from "react-router-dom";
+import Link from "next/link";
 
 const Navigation = () => {
   return (
@@ -32,7 +32,7 @@ const Navigation = () => {
                   Register your account and get your QR code for attendance
                 </p>
               </div>
-              <Link to="/student">
+              <Link href="/student">
                 <Button variant="academic" className="w-full" size="lg">
                   Student Registration
                 </Button>
@@ -50,7 +50,7 @@ const Navigation = () => {
                   Scan student QR codes for attendance tracking
                 </p>
               </div>
-              <Link to="/scan">
+              <Link href="/scan">
                 <Button variant="gradient" className="w-full" size="lg">
                   Start Scanning
                 </Button>
@@ -68,7 +68,7 @@ const Navigation = () => {
                   View and manage all student attendance records
                 </p>
               </div>
-              <Link to="/faculty">
+              <Link href="/faculty">
                 <Button variant="academic" className="w-full" size="lg">
                   Faculty Login
                 </Button>
