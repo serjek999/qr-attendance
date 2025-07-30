@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import bcrypt from 'bcryptjs'
+import * as bcrypt from 'bcryptjs'
 
 // Environment variables
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://znlktcgmualjzzevobrj.supabase.co'
