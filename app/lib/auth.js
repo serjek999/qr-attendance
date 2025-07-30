@@ -188,6 +188,58 @@ export const authUtils = {
         }
     },
 
+    // Check if student has already been recorded for today
+    async checkStudentAttendance(schoolId) {
+        try {
+            // Get student first
+            const studentResult = await this.getStudentBySchoolId(schoolId)
+            if (!studentResult.success) {
+                return studentResult
+            }
+
+            const student = studentResult.data
+            const today = new Date().toISOString().split('T')[0]
+
+            // Check if attendance record exists for today
+            const { data: existingRecords, error: checkError } = await supabase
+                .from('attendance_records')
+                .select('*')
+                .eq('student_id', student.id)
+                .eq('date', today)
+
+            if (checkError) {
+                return { success: false, message: 'Database error' }
+            }
+
+            if (existingRecords && existingRecords.length > 0) {
+                const record = existingRecords[0]
+                return {
+                    success: true,
+                    hasRecord: true,
+                    data: {
+                        student: student,
+                        record: record,
+                        status: record.time_in && record.time_out ? 'complete' : 'partial',
+                        timeIn: record.time_in,
+                        timeOut: record.time_out
+                    }
+                }
+            } else {
+                return {
+                    success: true,
+                    hasRecord: false,
+                    data: {
+                        student: student,
+                        record: null
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Check attendance error:', error)
+            return { success: false, message: 'Failed to check attendance' }
+        }
+    },
+
     // Record attendance
     async recordAttendance(schoolId, officerId) {
         try {
@@ -206,6 +258,17 @@ export const authUtils = {
                 second: '2-digit'
             })
 
+            // Check current time window
+            const now = new Date()
+            const hours = now.getHours()
+            const minutes = now.getMinutes()
+
+            // Time-in window: 7:00 AM to 11:30 AM
+            const isTimeInWindow = (hours >= 7 && hours < 11) || (hours === 11 && minutes <= 30)
+
+            // Time-out window: 1:00 PM to 5:00 PM  
+            const isTimeOutWindow = hours >= 13 && hours < 17
+
             // Check if attendance record exists for today
             const { data: existingRecords, error: checkError } = await supabase
                 .from('attendance_records')
@@ -220,8 +283,25 @@ export const authUtils = {
             let result
 
             if (existingRecords && existingRecords.length > 0) {
+                // Check if we can record time-out
+                if (!isTimeOutWindow) {
+                    return {
+                        success: false,
+                        message: 'Time-out is only allowed between 1:00 PM and 5:00 PM'
+                    }
+                }
+
                 // Update existing record (time-out)
                 const record = existingRecords[0]
+
+                // Check if already has time-out
+                if (record.time_out) {
+                    return {
+                        success: false,
+                        message: 'Student has already been recorded for time-out today'
+                    }
+                }
+
                 const updateData = { time_out: currentTime }
 
                 // Update status based on time-in and time-out
@@ -243,6 +323,14 @@ export const authUtils = {
 
                 result = updatedRecord[0]
             } else {
+                // Check if we can record time-in
+                if (!isTimeInWindow) {
+                    return {
+                        success: false,
+                        message: 'Time-in is only allowed between 7:00 AM and 11:30 AM'
+                    }
+                }
+
                 // Create new record (time-in)
                 const { data: newRecord, error: insertError } = await supabase
                     .from('attendance_records')

@@ -3,11 +3,19 @@ import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { ScanLine, Camera, CheckCircle, XCircle, Clock, ArrowLeft, LogOut, User } from "lucide-react";
+import { ScanLine, Camera, CheckCircle, XCircle, Clock, ArrowLeft, LogOut, User, UserCheck } from "lucide-react";
 import Link from "next/link";
 import QrScanner from "qr-scanner";
 import LoginForm from "@/components/LoginForm";
 import { authUtils } from "../lib/auth";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const Scan = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -15,6 +23,9 @@ const Scan = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [lastScan, setLastScan] = useState("");
   const [scanHistory, setScanHistory] = useState([]);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [scannedStudent, setScannedStudent] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const videoRef = useRef(null);
   const qrScannerRef = useRef(null);
   const { toast } = useToast();
@@ -76,6 +87,9 @@ const Scan = () => {
     setIsAuthenticated(false);
     setScanHistory([]);
     setLastScan("");
+    setShowConfirmDialog(false);
+    setScannedStudent(null);
+    setIsProcessing(false);
     
     // Stop scanning if active
     if (qrScannerRef.current) {
@@ -110,6 +124,105 @@ const Scan = () => {
       canScan: isTimeInWindow || isTimeOutWindow,
       currentWindow: isTimeInWindow ? 'time-in' : isTimeOutWindow ? 'time-out' : null
     };
+  };
+
+  const handleConfirmAttendance = async () => {
+    if (!scannedStudent) return;
+    
+    setIsProcessing(true);
+    const timeInfo = getCurrentTimeInfo();
+    
+    if (!timeInfo.canScan) {
+      const errorMessage = "Attendance scanning is only allowed during:\n• Time-in: 7:00 AM - 11:30 AM\n• Time-out: 1:00 PM - 5:00 PM";
+      
+      setScanHistory(prev => [{
+        schoolId: scannedStudent.student.school_id,
+        time: timeInfo.time,
+        type: (timeInfo.currentWindow || 'time-in'),
+        status: 'error',
+        message: errorMessage
+      }, ...prev.slice(0, 9)]);
+      
+      toast({
+        title: "Scanning Not Allowed",
+        description: errorMessage,
+        variant: "destructive"
+      });
+      
+      setShowConfirmDialog(false);
+      setScannedStudent(null);
+      setIsProcessing(false);
+      return;
+    }
+
+    try {
+      const result = await authUtils.recordAttendance(scannedStudent.student.school_id, user.id);
+      
+      if (result.success) {
+        const record = result.data;
+        const type = record.time_out ? 'time-out' : 'time-in';
+        
+        setScanHistory(prev => [{
+          schoolId: scannedStudent.student.school_id,
+          time: timeInfo.time,
+          type: type,
+          status: 'success',
+          message: `${type === 'time-out' ? 'Time-out' : 'Time-in'} recorded for ${record.student_name}`
+        }, ...prev.slice(0, 9)]);
+        
+        toast({
+          title: "Attendance Recorded! ✅",
+          description: `${scannedStudent.student.school_id} - ${result.message}`
+        });
+      } else {
+        setScanHistory(prev => [{
+          schoolId: scannedStudent.student.school_id,
+          time: timeInfo.time,
+          type: (timeInfo.currentWindow || 'time-in'),
+          status: 'error',
+          message: result.message
+        }, ...prev.slice(0, 9)]);
+        
+        toast({
+          title: "Error",
+          description: result.message,
+          variant: "destructive"
+        });
+      }
+      
+    } catch (error) {
+      console.error('Attendance recording error:', error);
+      const errorMessage = "Failed to record attendance";
+      
+      setScanHistory(prev => [{
+        schoolId: scannedStudent.student.school_id,
+        time: timeInfo.time,
+        type: (timeInfo.currentWindow || 'time-in'),
+        status: 'error',
+        message: errorMessage
+      }, ...prev.slice(0, 9)]);
+      
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    }
+    
+    setShowConfirmDialog(false);
+    setScannedStudent(null);
+    setIsProcessing(false);
+  };
+
+  const handleCancelAttendance = () => {
+    setShowConfirmDialog(false);
+    setScannedStudent(null);
+    setIsProcessing(false);
+    
+    toast({
+      title: "Scan Cancelled",
+      description: "Attendance recording was cancelled"
+    });
   };
 
   const processAttendance = async (schoolId) => {
@@ -195,10 +308,31 @@ const Scan = () => {
     try {
       const qrScanner = new QrScanner(
         videoRef.current,
-        (result) => {
+        async (result) => {
           const schoolId = result.data;
           setLastScan(schoolId);
-          processAttendance(schoolId);
+          
+          // Check student attendance status first
+          try {
+            const attendanceResult = await authUtils.checkStudentAttendance(schoolId);
+            if (attendanceResult.success) {
+              setScannedStudent(attendanceResult.data);
+              setShowConfirmDialog(true);
+            } else {
+              toast({
+                title: "Student Not Found",
+                description: attendanceResult.message,
+                variant: "destructive"
+              });
+            }
+          } catch (error) {
+            console.error('Error checking student attendance:', error);
+            toast({
+              title: "Error",
+              description: "Failed to get student information",
+              variant: "destructive"
+            });
+          }
         },
         {
           returnDetailedScanResult: true,
@@ -372,6 +506,8 @@ const Scan = () => {
                     </Button>
                   )}
                   
+
+                  
                   {!timeInfo.canScan && (
                     <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                       <p className="text-sm text-yellow-800">
@@ -439,6 +575,233 @@ const Scan = () => {
           </div>
         </div>
       </div>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserCheck className="h-5 w-5 text-primary" />
+              {(() => {
+                const timeInfo = getCurrentTimeInfo();
+                if (scannedStudent?.hasRecord) {
+                  if (scannedStudent.record.time_in && scannedStudent.record.time_out) {
+                    return 'Student Already Recorded';
+                  } else if (scannedStudent.record.time_in && !scannedStudent.record.time_out) {
+                    if (timeInfo.isTimeInWindow) {
+                      return 'Student Already Time-In';
+                    } else {
+                      return 'Ready for Time-Out';
+                    }
+                  }
+                } else {
+                  return 'Confirm Attendance';
+                }
+              })()}
+            </DialogTitle>
+            <DialogDescription>
+              {(() => {
+                const timeInfo = getCurrentTimeInfo();
+                if (scannedStudent?.hasRecord) {
+                  if (scannedStudent.record.time_in && scannedStudent.record.time_out) {
+                    return 'This student has already been recorded for today. Check the details below.';
+                  } else if (scannedStudent.record.time_in && !scannedStudent.record.time_out) {
+                    if (timeInfo.isTimeInWindow) {
+                      return 'This student is already time-in. Time-out can be recorded between 1:00 PM - 5:00 PM.';
+                    } else {
+                      return 'This student can record time-out when the time-out window is active.';
+                    }
+                  }
+                } else {
+                  return 'Please confirm the student information before recording attendance';
+                }
+              })()}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {scannedStudent && (
+            <div className="space-y-4">
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center gap-2 mb-3">
+                  <User className="h-4 w-4 text-blue-600" />
+                  <span className="font-medium text-blue-900">Student Information</span>
+                </div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-blue-700">School ID:</span>
+                    <span className="font-mono font-medium text-blue-900">{scannedStudent.student.school_id}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-blue-700">Name:</span>
+                    <span className="font-medium text-blue-900">{scannedStudent.student.first_name} {scannedStudent.student.last_name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-blue-700">Birthdate:</span>
+                    <span className="text-blue-900">{new Date(scannedStudent.student.birthdate).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              </div>
+              
+              {(() => {
+                const timeInfo = getCurrentTimeInfo();
+                
+                if (scannedStudent.hasRecord) {
+                  // Student has a record
+                  if (scannedStudent.record.time_in && scannedStudent.record.time_out) {
+                    // Complete record (both time-in and time-out)
+                    return (
+                      <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <div className="flex items-center gap-2 mb-3">
+                          <XCircle className="h-4 w-4 text-red-600" />
+                          <span className="font-medium text-red-900">Already Recorded Today</span>
+                        </div>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-red-700">Time In:</span>
+                            <span className="font-medium text-red-900">{scannedStudent.record.time_in}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-red-700">Time Out:</span>
+                            <span className="font-medium text-red-900">{scannedStudent.record.time_out}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-red-700">Status:</span>
+                            <span className="font-medium text-green-700">Complete</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  } else if (scannedStudent.record.time_in && !scannedStudent.record.time_out) {
+                    // Only time-in recorded
+                    if (timeInfo.isTimeInWindow) {
+                      // During time-in hours - show already time-in message
+                      return (
+                        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                          <div className="flex items-center gap-2 mb-3">
+                            <XCircle className="h-4 w-4 text-red-600" />
+                            <span className="font-medium text-red-900">Already Time-In</span>
+                          </div>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-red-700">Time In:</span>
+                              <span className="font-medium text-red-900">{scannedStudent.record.time_in}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-red-700">Status:</span>
+                              <span className="font-medium text-orange-700">Time-In Only</span>
+                            </div>
+                            <div className="text-sm text-red-700 mt-2">
+                              This student is already time-in only. Time-out can be recorded between 1:00 PM - 5:00 PM.
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    } else {
+                      // Outside time-in hours - show ready for time-out
+                      return (
+                        <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                          <div className="flex items-center gap-2 mb-3">
+                            <Clock className="h-4 w-4 text-orange-600" />
+                            <span className="font-medium text-orange-900">Ready for Time-Out</span>
+                          </div>
+                          <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                              <span className="text-orange-700">Time In:</span>
+                              <span className="font-medium text-orange-900">{scannedStudent.record.time_in}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-orange-700">Status:</span>
+                              <span className="font-medium text-orange-700">Time-In Only</span>
+                            </div>
+                            <div className="text-sm text-orange-700 mt-2">
+                              Student can record time-out when time-out window is active.
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                  }
+                } else {
+                  // No record exists
+                  if (timeInfo.isTimeInWindow) {
+                    return (
+                      <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center gap-2 mb-3">
+                          <CheckCircle className="h-4 w-4 text-green-600" />
+                          <span className="font-medium text-green-900">Ready to Record</span>
+                        </div>
+                        <div className="text-sm text-green-800">
+                          This student has not been recorded today. Ready to record time-in.
+                        </div>
+                      </div>
+                    );
+                  } else {
+                    return (
+                      <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Clock className="h-4 w-4 text-yellow-600" />
+                          <span className="font-medium text-yellow-900">Time-In Not Available</span>
+                        </div>
+                        <div className="text-sm text-yellow-800">
+                          This student has not been recorded today, but time-in is only allowed between 7:00 AM - 11:30 AM.
+                        </div>
+                      </div>
+                    );
+                  }
+                }
+              })()}
+
+
+              
+              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-sm text-yellow-800">
+                  <Clock className="h-4 w-4 inline mr-1" />
+                  Current time: {new Date().toLocaleTimeString()}
+                </p>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              onClick={handleCancelAttendance}
+              disabled={isProcessing}
+              className="w-full sm:w-auto"
+            >
+              Close
+            </Button>
+            {(() => {
+              const timeInfo = getCurrentTimeInfo();
+              const canRecord = (!scannedStudent?.hasRecord && timeInfo.isTimeInWindow) || 
+                               (scannedStudent?.hasRecord && !scannedStudent?.record.time_out && timeInfo.isTimeOutWindow);
+              
+              if (canRecord) {
+                return (
+                  <Button
+                    onClick={handleConfirmAttendance}
+                    disabled={isProcessing}
+                    className="w-full sm:w-auto"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Recording...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Record {!scannedStudent?.hasRecord ? 'Time-In' : 'Time-Out'}
+                      </>
+                    )}
+                  </Button>
+                );
+              }
+              return null;
+            })()}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
