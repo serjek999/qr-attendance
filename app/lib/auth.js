@@ -225,12 +225,30 @@ export const authUtils = {
                     }
                 }
             } else {
+                // Also check for any recent attendance records (last 7 days) to show history
+                const sevenDaysAgo = new Date()
+                sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+                const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0]
+
+                const { data: recentRecords, error: recentError } = await supabase
+                    .from('attendance_records')
+                    .select('*')
+                    .eq('student_id', student.id)
+                    .gte('date', sevenDaysAgoStr)
+                    .order('date', { ascending: false })
+                    .limit(5)
+
+                if (recentError) {
+                    console.error('Recent records check error:', recentError)
+                }
+
                 return {
                     success: true,
                     hasRecord: false,
                     data: {
                         student: student,
-                        record: null
+                        record: null,
+                        recentRecords: recentRecords || []
                     }
                 }
             }
