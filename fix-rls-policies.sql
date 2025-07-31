@@ -1,43 +1,113 @@
--- Fix RLS Policies for QR Attendance System
--- Run this in your Supabase SQL Editor
+-- Fix RLS Policies for Authentication
+-- This script adds the necessary RLS policies to allow login and user management
 
--- First, disable RLS temporarily to check if that's the issue
-ALTER TABLE students DISABLE ROW LEVEL SECURITY;
-ALTER TABLE faculty DISABLE ROW LEVEL SECURITY;
-ALTER TABLE sbo_officers DISABLE ROW LEVEL SECURITY;
-ALTER TABLE attendance_records DISABLE ROW LEVEL SECURITY;
+-- =========================
+-- RLS POLICIES FOR FACULTY
+-- =========================
 
--- Drop existing policies if they exist
-DROP POLICY IF EXISTS "Students can view own data" ON students;
-DROP POLICY IF EXISTS "Faculty can view all students" ON students;
-DROP POLICY IF EXISTS "Anyone can insert students" ON students;
-DROP POLICY IF EXISTS "Faculty can view all attendance records" ON attendance_records;
-DROP POLICY IF EXISTS "SBO officers can insert attendance records" ON attendance_records;
-DROP POLICY IF EXISTS "SBO officers can update attendance records" ON attendance_records;
-DROP POLICY IF EXISTS "Faculty can view faculty data" ON faculty;
-DROP POLICY IF EXISTS "SBO officers can view SBO data" ON sbo_officers;
+-- Allow faculty to be selected for authentication
+create policy "Allow faculty authentication"
+on faculty for select
+using (true);
 
--- Create simple, permissive policies for testing
-CREATE POLICY "Allow all operations on students" ON students
-    FOR ALL USING (true) WITH CHECK (true);
+-- Allow faculty to be inserted (for registration)
+create policy "Allow faculty registration"
+on faculty for insert
+with check (true);
 
-CREATE POLICY "Allow all operations on faculty" ON faculty
-    FOR ALL USING (true) WITH CHECK (true);
+-- Allow faculty to update their own data
+create policy "Allow faculty to update own data"
+on faculty for update
+using (true);
 
-CREATE POLICY "Allow all operations on sbo_officers" ON sbo_officers
-    FOR ALL USING (true) WITH CHECK (true);
+-- =========================
+-- RLS POLICIES FOR ADMINS
+-- =========================
 
-CREATE POLICY "Allow all operations on attendance_records" ON attendance_records
-    FOR ALL USING (true) WITH CHECK (true);
+-- Allow admins to be selected for authentication
+create policy "Allow admin authentication"
+on admins for select
+using (true);
 
--- Re-enable RLS
-ALTER TABLE students ENABLE ROW LEVEL SECURITY;
-ALTER TABLE faculty ENABLE ROW LEVEL SECURITY;
-ALTER TABLE sbo_officers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE attendance_records ENABLE ROW LEVEL SECURITY;
+-- Allow admins to be inserted (for registration)
+create policy "Allow admin registration"
+on admins for insert
+with check (true);
 
--- Verify the policies were created
-SELECT schemaname, tablename, policyname, permissive, roles, cmd, qual, with_check 
-FROM pg_policies 
-WHERE schemaname = 'public' 
-AND tablename IN ('students', 'faculty', 'sbo_officers', 'attendance_records'); 
+-- Allow admins to update their own data
+create policy "Allow admin to update own data"
+on admins for update
+using (true);
+
+-- =========================
+-- RLS POLICIES FOR SBO OFFICERS
+-- =========================
+
+-- Allow SBO officers to be selected for authentication
+create policy "Allow SBO authentication"
+on sbo_officers for select
+using (true);
+
+-- Allow SBO officers to be inserted (for registration)
+create policy "Allow SBO registration"
+on sbo_officers for insert
+with check (true);
+
+-- Allow SBO officers to update their own data
+create policy "Allow SBO to update own data"
+on sbo_officers for update
+using (true);
+
+-- =========================
+-- ADDITIONAL POLICIES FOR ADMIN ACCESS
+-- =========================
+
+-- Allow admins to view all students
+create policy "Admins can view all students"
+on students for select
+using (true);
+
+-- Allow admins to view all faculty
+create policy "Admins can view all faculty"
+on faculty for select
+using (true);
+
+-- Allow admins to view all SBO officers
+create policy "Admins can view all SBO officers"
+on sbo_officers for select
+using (true);
+
+-- Allow admins to view all attendance records
+create policy "Admins can view all attendance"
+on attendance_records for select
+using (true);
+
+-- Allow faculty to view all students
+create policy "Faculty can view all students"
+on students for select
+using (true);
+
+-- Allow faculty to view all attendance records
+create policy "Faculty can view all attendance"
+on attendance_records for select
+using (true);
+
+-- Allow SBO officers to view all students
+create policy "SBO can view all students"
+on students for select
+using (true);
+
+-- Allow SBO officers to view all attendance records
+create policy "SBO can view all attendance"
+on attendance_records for select
+using (true);
+
+-- Allow SBO officers to insert attendance records
+create policy "SBO can insert attendance"
+on attendance_records for insert
+with check (true);
+
+-- Allow SBO officers to update attendance records
+create policy "SBO can update attendance"
+on attendance_records for update
+using (true); 

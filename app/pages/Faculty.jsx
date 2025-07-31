@@ -265,7 +265,7 @@ const Faculty = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 py-8">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between mb-8">
-          <Link href="/" className="inline-flex items-center text-primary hover:text-primary/80">
+                      <Link href="/" className="inline-flex items-center text-primary hover:text-primary/80">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Home
           </Link>

@@ -1,128 +1,176 @@
--- QR Attendance System Database Schema
--- Run this in your Supabase SQL editor
+-- Enable UUID extension
+create extension if not exists "uuid-ossp";
 
--- Enable Row Level Security
-ALTER DATABASE postgres SET "app.jwt_secret" TO 'your-jwt-secret-here';
-
--- Create students table
-CREATE TABLE IF NOT EXISTS students (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    school_id VARCHAR(20) UNIQUE NOT NULL,
-    first_name VARCHAR(100) NOT NULL,
-    last_name VARCHAR(100) NOT NULL,
-    birthdate DATE NOT NULL,
-    year_level VARCHAR(10) CHECK (year_level IN ('Y1', 'Y2', 'YEAR3', 'YEAR4')),
-    password_hash VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+-- ====================
+-- TABLE: Tribes
+-- ====================
+create table if not exists tribes (
+  id uuid primary key default uuid_generate_v4(),
+  name text not null unique,
+  created_at timestamp default now()
 );
 
--- Create faculty table
-CREATE TABLE IF NOT EXISTS faculty (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    username VARCHAR(50) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    full_name VARCHAR(200) NOT NULL,
-    email VARCHAR(255),
-    role VARCHAR(50) DEFAULT 'faculty',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+-- ====================
+-- TABLE: Students
+-- ====================
+create table if not exists students (
+  id uuid primary key default uuid_generate_v4(),
+  school_id text not null unique,
+  full_name text not null,
+  birthdate date not null,
+  tribe_id uuid references tribes(id) on delete set null,
+  password_hash text not null,
+  created_at timestamp default now()
 );
 
--- Create sbo_officers table
-CREATE TABLE IF NOT EXISTS sbo_officers (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    username VARCHAR(50) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    full_name VARCHAR(200) NOT NULL,
-    position VARCHAR(100),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+-- ====================
+-- TABLE: Faculty
+-- ====================
+create table if not exists faculty (
+  id uuid primary key default uuid_generate_v4(),
+  email text not null unique,
+  full_name text not null,
+  password_hash text not null,
+  created_at timestamp default now()
 );
 
--- Create attendance_records table
-CREATE TABLE IF NOT EXISTS attendance_records (
-    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    student_id UUID REFERENCES students(id) ON DELETE CASCADE,
-    school_id VARCHAR(20) NOT NULL,
-    student_name VARCHAR(200) NOT NULL,
-    year_level VARCHAR(10),
-    date DATE NOT NULL,
-    time_in TIME,
-    time_out TIME,
-    status VARCHAR(20) DEFAULT 'absent' CHECK (status IN ('present', 'partial', 'absent')),
-    recorded_by UUID REFERENCES sbo_officers(id),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    UNIQUE(student_id, date)
+-- ====================
+-- TABLE: SBO Officers
+-- ====================
+create table if not exists sbo_officers (
+  id uuid primary key default uuid_generate_v4(),
+  email text not null unique,
+  full_name text not null,
+  password_hash text not null,
+  created_at timestamp default now()
 );
 
--- Create indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_students_school_id ON students(school_id);
-CREATE INDEX IF NOT EXISTS idx_attendance_records_date ON attendance_records(date);
-CREATE INDEX IF NOT EXISTS idx_attendance_records_student_id ON attendance_records(student_id);
-CREATE INDEX IF NOT EXISTS idx_attendance_records_school_id ON attendance_records(school_id);
+-- ====================
+-- TABLE: Admins
+-- ====================
+create table if not exists admins (
+  id uuid primary key default uuid_generate_v4(),
+  email text not null unique,
+  full_name text not null,
+  password_hash text not null,
+  created_at timestamp default now()
+);
 
--- Create updated_at trigger function
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = NOW();
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
+-- ====================
+-- TABLE: Posts
+-- ====================
+create table if not exists posts (
+  id uuid primary key default uuid_generate_v4(),
+  author_id uuid references students(id) on delete cascade,
+  tribe_id uuid references tribes(id) on delete set null,
+  content text not null,
+  approved boolean default false,
+  created_at timestamp default now()
+);
 
--- Create triggers for updated_at
-CREATE TRIGGER update_students_updated_at BEFORE UPDATE ON students FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_faculty_updated_at BEFORE UPDATE ON faculty FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_sbo_officers_updated_at BEFORE UPDATE ON sbo_officers FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-CREATE TRIGGER update_attendance_records_updated_at BEFORE UPDATE ON attendance_records FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+-- ====================
+-- TABLE: Post Likes
+-- ====================
+create table if not exists post_likes (
+  id uuid primary key default uuid_generate_v4(),
+  post_id uuid references posts(id) on delete cascade,
+  student_id uuid references students(id) on delete cascade,
+  created_at timestamp default now(),
+  unique(post_id, student_id)
+);
 
--- Insert sample faculty data
-INSERT INTO faculty (username, password_hash, full_name, email, role) VALUES
-('faculty', '$2a$10$rQZ8K9mN2pL1vX3yU7wE4t', 'Faculty Member', 'faculty@school.edu', 'faculty')
-ON CONFLICT (username) DO NOTHING;
+-- =========================
+-- TABLE: Attendance Records
+-- =========================
+create table if not exists attendance_records (
+  id uuid primary key default uuid_generate_v4(),
+  student_id uuid references students(id) on delete cascade,
+  tribe_id uuid references tribes(id) on delete set null,
+  time_in timestamp,
+  time_out timestamp,
+  date date not null default current_date,
+  created_at timestamp default now(),
+  unique(student_id, date)
+);
 
--- Insert sample SBO officer data
-INSERT INTO sbo_officers (username, password_hash, full_name, position) VALUES
-('sbo', '$2a$10$rQZ8K9mN2pL1vX3yU7wE4t', 'SBO Officer', 'General Secretary')
-ON CONFLICT (username) DO NOTHING;
+-- =========================
+-- ENABLE RLS (Row-Level Security)
+-- =========================
+alter table students enable row level security;
+alter table faculty enable row level security;
+alter table sbo_officers enable row level security;
+alter table admins enable row level security;
+alter table posts enable row level security;
+alter table post_likes enable row level security;
+alter table attendance_records enable row level security;
 
--- Enable Row Level Security (RLS)
-ALTER TABLE students ENABLE ROW LEVEL SECURITY;
-ALTER TABLE faculty ENABLE ROW LEVEL SECURITY;
-ALTER TABLE sbo_officers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE attendance_records ENABLE ROW LEVEL SECURITY;
+-- =========================
+-- RLS POLICIES (Students)
+-- =========================
 
--- Create RLS policies
 -- Students can view their own data
-CREATE POLICY "Students can view own data" ON students
-    FOR SELECT USING (school_id = current_setting('app.school_id', true));
+create policy "Students can read their own data"
+on students for select
+using (id = auth.uid()::uuid);
 
--- Faculty can view all students
-CREATE POLICY "Faculty can view all students" ON students
-    FOR SELECT USING (true);
+-- Students can update their own data
+create policy "Students can update their own data"
+on students for update
+using (id = auth.uid()::uuid);
 
--- Anyone can insert students (for registration)
-CREATE POLICY "Anyone can insert students" ON students
-    FOR INSERT WITH CHECK (true);
+-- =========================
+-- RLS POLICIES (Posts)
+-- =========================
 
--- Faculty can view all attendance records
-CREATE POLICY "Faculty can view all attendance records" ON attendance_records
-    FOR SELECT USING (true);
+-- Students can view all approved posts or their own
+create policy "View approved or own posts"
+on posts for select
+using (
+  approved = true or
+  author_id = auth.uid()::uuid
+);
 
--- SBO officers can insert attendance records
-CREATE POLICY "SBO officers can insert attendance records" ON attendance_records
-    FOR INSERT WITH CHECK (true);
+-- Students can insert their own posts
+create policy "Students can create posts"
+on posts for insert
+with check (author_id = auth.uid()::uuid);
 
--- SBO officers can update attendance records
-CREATE POLICY "SBO officers can update attendance records" ON attendance_records
-    FOR UPDATE USING (true);
+-- =========================
+-- RLS POLICIES (Post Likes)
+-- =========================
 
--- Faculty can view faculty data
-CREATE POLICY "Faculty can view faculty data" ON faculty
-    FOR SELECT USING (true);
+-- Students can view likes
+create policy "Students can view likes"
+on post_likes for select
+using (student_id = auth.uid()::uuid);
 
--- SBO officers can view SBO data
-CREATE POLICY "SBO officers can view SBO data" ON sbo_officers
-    FOR SELECT USING (true); 
+-- Students can like/unlike posts
+create policy "Students can like/unlike posts"
+on post_likes for insert
+with check (student_id = auth.uid()::uuid);
+
+create policy "Students can unlike their own likes"
+on post_likes for delete
+using (student_id = auth.uid()::uuid);
+
+-- =========================
+-- RLS POLICIES (Attendance Records)
+-- =========================
+
+-- Students can view their own attendance
+create policy "Students can read their own attendance"
+on attendance_records for select
+using (student_id = auth.uid()::uuid);
+
+-- Students can check in/out
+create policy "Students can add their own attendance"
+on attendance_records for insert
+with check (student_id = auth.uid()::uuid);
+
+-- =========================
+-- RLS for Faculty/Admins/SBO (if needed)
+-- =========================
+-- You can add select/update permissions for specific roles using Supabase Auth groups or JWT claims
+
+-- Example (for Supabase Dashboard role use):
+-- grant select on students to authenticated;

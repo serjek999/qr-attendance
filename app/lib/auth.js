@@ -35,9 +35,9 @@ export const authUtils = {
     // Student registration
     async registerStudent(studentData) {
         try {
-            const { schoolId, lastName, firstName, birthdate, yearLevel } = studentData
+            const { schoolId, lastName, firstName, middleName, birthdate, yearLevel, tribe } = studentData
 
-            console.log('Registration attempt:', { schoolId, lastName, firstName, birthdate, yearLevel })
+            console.log('Registration attempt:', { schoolId, lastName, firstName, middleName, birthdate, yearLevel, tribe })
 
             // Generate password from last name and birthdate
             const password = `${lastName}${birthdate}`
@@ -67,10 +67,9 @@ export const authUtils = {
                 .from('students')
                 .insert({
                     school_id: schoolId,
-                    first_name: firstName,
-                    last_name: lastName,
+                    full_name: `${firstName} ${lastName}`,
                     birthdate: birthdate,
-                    year_level: yearLevel,
+                    tribe_id: tribe,
                     password_hash: passwordHash
                 })
                 .select()
@@ -94,13 +93,13 @@ export const authUtils = {
     },
 
     // Faculty login
-    async loginFaculty(username, password) {
+    async loginFaculty(email, password) {
         try {
-            // Get faculty by username
+            // Get faculty by email
             const { data: facultyData, error: facultyError } = await supabase
                 .from('faculty')
                 .select('*')
-                .eq('username', username)
+                .eq('email', email)
 
             if (facultyError || !facultyData || facultyData.length === 0) {
                 return { success: false, message: 'Invalid credentials' }
@@ -120,10 +119,8 @@ export const authUtils = {
                 message: 'Login successful',
                 faculty: {
                     id: faculty.id,
-                    username: faculty.username,
-                    full_name: faculty.full_name,
                     email: faculty.email,
-                    role: faculty.role
+                    full_name: faculty.full_name
                 }
             }
         } catch (error) {
@@ -133,13 +130,13 @@ export const authUtils = {
     },
 
     // SBO Officer login
-    async loginSBO(username, password) {
+    async loginSBO(email, password) {
         try {
-            // Get SBO officer by username
+            // Get SBO officer by email
             const { data: officerData, error: officerError } = await supabase
                 .from('sbo_officers')
                 .select('*')
-                .eq('username', username)
+                .eq('email', email)
 
             if (officerError || !officerData || officerData.length === 0) {
                 return { success: false, message: 'Invalid credentials' }
@@ -159,13 +156,88 @@ export const authUtils = {
                 message: 'Login successful',
                 officer: {
                     id: officer.id,
-                    username: officer.username,
-                    full_name: officer.full_name,
-                    position: officer.position
+                    email: officer.email,
+                    full_name: officer.full_name
                 }
             }
         } catch (error) {
             console.error('SBO login error:', error)
+            return { success: false, message: 'Login failed' }
+        }
+    },
+
+    // Admin login
+    async loginAdmin(email, password) {
+        try {
+            // Get admin by email
+            const { data: adminData, error: adminError } = await supabase
+                .from('admins')
+                .select('*')
+                .eq('email', email)
+
+            if (adminError || !adminData || adminData.length === 0) {
+                return { success: false, message: 'Invalid credentials' }
+            }
+
+            const admin = adminData[0]
+
+            // Verify password
+            const isValidPassword = await this.verifyPassword(password, admin.password_hash)
+
+            if (!isValidPassword) {
+                return { success: false, message: 'Invalid credentials' }
+            }
+
+            return {
+                success: true,
+                message: 'Login successful',
+                admin: {
+                    id: admin.id,
+                    email: admin.email,
+                    full_name: admin.full_name
+                }
+            }
+        } catch (error) {
+            console.error('Admin login error:', error)
+            return { success: false, message: 'Login failed' }
+        }
+    },
+
+    // Student login
+    async loginStudent(schoolId, password) {
+        try {
+            // Get student by school ID
+            const { data: studentData, error: studentError } = await supabase
+                .from('students')
+                .select('*')
+                .eq('school_id', schoolId)
+
+            if (studentError || !studentData || studentData.length === 0) {
+                return { success: false, message: 'Student not found' }
+            }
+
+            const student = studentData[0]
+
+            // Verify password
+            const isValidPassword = await this.verifyPassword(password, student.password_hash)
+
+            if (!isValidPassword) {
+                return { success: false, message: 'Invalid password' }
+            }
+
+            return {
+                success: true,
+                message: 'Login successful',
+                student: {
+                    id: student.id,
+                    school_id: student.school_id,
+                    full_name: student.full_name,
+                    birthdate: student.birthdate,
+                    tribe_id: student.tribe_id
+                }
+            }
+        } catch (error) {
+            console.error('Student login error:', error)
             return { success: false, message: 'Login failed' }
         }
     },

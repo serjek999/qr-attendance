@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ScanLine, Camera, CheckCircle, XCircle, Clock, ArrowLeft, LogOut, User, UserCheck } from "lucide-react";
 import Link from "next/link";
 import QrScanner from "qr-scanner";
-import LoginForm from "@/components/LoginForm";
+import LoginForm from "@/components/LoginForm.jsx";
 import { authUtils } from "../lib/auth";
 import {
   Dialog,

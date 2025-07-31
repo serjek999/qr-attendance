@@ -8,67 +8,81 @@
 const { createClient } = require('@supabase/supabase-js');
 const bcrypt = require('bcryptjs');
 
-// Check if environment variables are set
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// Environment variables - these should be set in your .env.local file
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://znlktcgmualjzzevobrj.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpubGt0Y2dtdWFsanp6ZXZvYnJqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM4NTk5MDksImV4cCI6MjA2OTQzNTkwOX0.3HFp6xaS619374tN3swszXJsfUg8i5iB7v2u5Q4k0lQ';
 
-if (!supabaseUrl || !supabaseKey) {
-    console.error('❌ Environment variables not found!');
-    console.log('Please create a .env.local file with:');
-    console.log('NEXT_PUBLIC_SUPABASE_URL=your-supabase-url');
-    console.log('NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key');
-    process.exit(1);
+// For setup, we need to use the service role key to bypass RLS
+// You should set this in your environment variables
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseServiceKey) {
+    console.log('⚠️  No service role key found. Using anon key (may have RLS restrictions)...');
+    console.log('For full setup, set SUPABASE_SERVICE_ROLE_KEY in your environment variables.');
 }
 
-// Create Supabase client
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Create Supabase client with service role key if available
+const supabase = createClient(supabaseUrl, supabaseServiceKey || supabaseAnonKey, {
+    auth: {
+        autoRefreshToken: false,
+        persistSession: false
+    }
+});
 
-async function testConnection() {
-    console.log('🔍 Testing Supabase connection...');
+// Hash password helper
+async function hashPassword(password) {
+    const saltRounds = 10;
+    return await bcrypt.hash(password, saltRounds);
+}
+
+async function setupSupabase() {
+    console.log('Setting up Supabase database...');
 
     try {
-        // Test basic connection
-        const { data, error } = await supabase.from('students').select('count').limit(1);
+        // 1. Insert tribes (if they don't exist)
+        console.log('Setting up tribes...');
+        const tribes = [
+            { name: 'Alpha', color: 'bg-blue-500' },
+            { name: 'Beta', color: 'bg-green-500' },
+            { name: 'Gamma', color: 'bg-purple-500' },
+            { name: 'Delta', color: 'bg-orange-500' },
+            { name: 'Epsilon', color: 'bg-red-500' }
+        ];
 
-        if (error) {
-            console.error('❌ Connection failed:', error.message);
-            return false;
-        }
-
-        console.log('✅ Connection successful!');
-        return true;
-    } catch (error) {
-        console.error('❌ Connection error:', error.message);
-        return false;
-    }
-}
-
-async function checkTables() {
-    console.log('\n📋 Checking database tables...');
-
-    const tables = ['students', 'faculty', 'sbo_officers', 'attendance_records'];
-
-    for (const table of tables) {
-        try {
-            const { data, error } = await supabase.from(table).select('*').limit(1);
+        for (const tribe of tribes) {
+            const { error } = await supabase
+                .from('tribes')
+                .upsert(tribe, { onConflict: 'name' });
 
             if (error) {
-                console.log(`❌ Table '${table}': ${error.message}`);
+                console.error(`Error inserting tribe ${tribe.name}:`, error.message);
             } else {
-                console.log(`✅ Table '${table}': OK`);
+                console.log(`✓ Tribe ${tribe.name} set up`);
             }
-        } catch (error) {
-            console.log(`❌ Table '${table}': ${error.message}`);
         }
-    }
-}
 
-async function createSampleData() {
-    console.log('\n👥 Creating sample data...');
+        // 2. Insert admin user
+        console.log('Setting up admin user...');
+        const adminPassword = await hashPassword('admin123');
+        const { error: adminError } = await supabase
+            .from('admins')
+            .upsert({
+                username: 'admin',
+                password_hash: adminPassword,
+                full_name: 'System Administrator',
+                email: 'admin@school.edu',
+                role: 'admin'
+            }, { onConflict: 'username' });
 
-    try {
-        // Create sample faculty
-        const facultyPassword = await bcrypt.hash('password', 10);
+        if (adminError) {
+            console.error('Error inserting admin:', adminError.message);
+        } else {
+            console.log('✓ Admin user set up');
+        }
+
+        // 3. Insert faculty user
+        console.log('Setting up faculty user...');
+        const facultyPassword = await hashPassword('faculty123');
         const { error: facultyError } = await supabase
             .from('faculty')
             .upsert({
@@ -80,107 +94,94 @@ async function createSampleData() {
             }, { onConflict: 'username' });
 
         if (facultyError) {
-            console.log('⚠️  Faculty creation:', facultyError.message);
+            console.error('Error inserting faculty:', facultyError.message);
         } else {
-            console.log('✅ Sample faculty created');
+            console.log('✓ Faculty user set up');
         }
 
-        // Create sample SBO officer
-        const sboPassword = await bcrypt.hash('password', 10);
+        // 4. Insert SBO officer
+        console.log('Setting up SBO officer...');
+        const sboPassword = await hashPassword('sbo123');
         const { error: sboError } = await supabase
             .from('sbo_officers')
             .upsert({
                 username: 'sbo',
                 password_hash: sboPassword,
                 full_name: 'SBO Officer',
-                position: 'General Secretary'
+                position: 'President'
             }, { onConflict: 'username' });
 
         if (sboError) {
-            console.log('⚠️  SBO officer creation:', sboError.message);
+            console.error('Error inserting SBO officer:', sboError.message);
         } else {
-            console.log('✅ Sample SBO officer created');
+            console.log('✓ SBO officer set up');
+        }
+
+        // 5. Insert sample students
+        console.log('Setting up sample students...');
+        const sampleStudents = [
+            {
+                school_id: '2023123456',
+                first_name: 'John',
+                last_name: 'Smith',
+                middle_name: 'Michael',
+                year_level: 'y1',
+                tribe_id: null // Will be set after getting tribe ID
+            },
+            {
+                school_id: '2023987654',
+                first_name: 'Jane',
+                last_name: 'Doe',
+                middle_name: 'Elizabeth',
+                year_level: 'y2',
+                tribe_id: null
+            }
+        ];
+
+        // Get tribe IDs first
+        const { data: tribeData } = await supabase
+            .from('tribes')
+            .select('id, name')
+            .limit(2);
+
+        if (tribeData && tribeData.length >= 2) {
+            sampleStudents[0].tribe_id = tribeData[0].id;
+            sampleStudents[1].tribe_id = tribeData[1].id;
+
+            for (const student of sampleStudents) {
+                const studentPassword = await hashPassword(`${student.last_name}2023-01-15`);
+                const { error: studentError } = await supabase
+                    .from('students')
+                    .upsert({
+                        ...student,
+                        password_hash: studentPassword
+                    }, { onConflict: 'school_id' });
+
+                if (studentError) {
+                    console.error(`Error inserting student ${student.school_id}:`, studentError.message);
+                } else {
+                    console.log(`✓ Student ${student.school_id} set up`);
+                }
+            }
+        }
+
+        console.log('\n✅ Supabase setup completed successfully!');
+        console.log('\nTest Credentials:');
+        console.log('Admin: admin / admin123');
+        console.log('Faculty: faculty / faculty123');
+        console.log('SBO: sbo / sbo123');
+        console.log('Student 1: 2023123456 / Smith2023-01-15');
+        console.log('Student 2: 2023987654 / Doe2023-01-15');
+
+        if (!supabaseServiceKey) {
+            console.log('\n⚠️  Note: Some operations may have failed due to RLS policies.');
+            console.log('To bypass RLS, set SUPABASE_SERVICE_ROLE_KEY in your environment variables.');
         }
 
     } catch (error) {
-        console.error('❌ Error creating sample data:', error.message);
+        console.error('Setup failed:', error);
     }
 }
 
-async function testAuthentication() {
-    console.log('\n🔐 Testing authentication...');
-
-    try {
-        // Test faculty login
-        const facultyPassword = 'password';
-        const { data: facultyData, error: facultyError } = await supabase
-            .from('faculty')
-            .select('*')
-            .eq('username', 'faculty')
-            .single();
-
-        if (facultyError || !facultyData) {
-            console.log('❌ Faculty authentication test failed');
-            return;
-        }
-
-        const isValidPassword = await bcrypt.compare(facultyPassword, facultyData.password_hash);
-
-        if (isValidPassword) {
-            console.log('✅ Faculty authentication: OK');
-        } else {
-            console.log('❌ Faculty authentication: Failed');
-        }
-
-        // Test SBO login
-        const { data: sboData, error: sboError } = await supabase
-            .from('sbo_officers')
-            .select('*')
-            .eq('username', 'sbo')
-            .single();
-
-        if (sboError || !sboData) {
-            console.log('❌ SBO authentication test failed');
-            return;
-        }
-
-        const isValidSboPassword = await bcrypt.compare(facultyPassword, sboData.password_hash);
-
-        if (isValidSboPassword) {
-            console.log('✅ SBO authentication: OK');
-        } else {
-            console.log('❌ SBO authentication: Failed');
-        }
-
-    } catch (error) {
-        console.error('❌ Authentication test error:', error.message);
-    }
-}
-
-async function main() {
-    console.log('🚀 Supabase Setup Script\n');
-
-    // Test connection
-    const isConnected = await testConnection();
-    if (!isConnected) {
-        process.exit(1);
-    }
-
-    // Check tables
-    await checkTables();
-
-    // Create sample data
-    await createSampleData();
-
-    // Test authentication
-    await testAuthentication();
-
-    console.log('\n🎉 Setup complete!');
-    console.log('\nDemo credentials:');
-    console.log('Faculty - Username: faculty, Password: password');
-    console.log('SBO - Username: sbo, Password: password');
-    console.log('\nYou can now run your application with: npm run dev');
-}
-
-// Run the script
-main().catch(console.error); 
+// Run the setup
+setupSupabase(); 

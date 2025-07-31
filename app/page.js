@@ -2,11 +2,11 @@
 
 import dynamic from 'next/dynamic';
 
-const Index = dynamic(() => import('./pages/Index'), {
+const Navigation = dynamic(() => import('@/components/Navigation'), {
   ssr: false,
-  loading: () => <div>Loading...</div>
+  loading: () => <div>Loading....</div>
 });
 
 export default function Page() {
-  return <Index />;
+  return <Navigation />;
 }

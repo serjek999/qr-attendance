@@ -1,8 +1,7 @@
 "use client";
 
-import { useLocation } from "react-router-dom";
 import { useEffect } from "react";
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { GraduationCap, ArrowLeft } from "lucide-react";
@@ -35,7 +34,7 @@ const NotFound = () => {
                             <p className="text-muted-foreground mb-6">
                                 The page you&apos;re looking for doesn&apos;t exist or has been moved.
                             </p>
-                            <Link to="/">
+                            <Link href="/">
                                 <Button variant="academic" className="w-full">
                                     <ArrowLeft className="h-4 w-4 mr-2" />
                                     Return to Home

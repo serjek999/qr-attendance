@@ -330,7 +330,7 @@ const Student = () => {
 
   return <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 py-8">
     <div className="container mx-auto px-4">
-      <Link href="/" className="inline-flex items-center text-primary hover:text-primary/80 mb-6">
+                  <Link href="/" className="inline-flex items-center text-primary hover:text-primary/80 mb-6">
         <ArrowLeft className="h-4 w-4 mr-2" />
         Back to Home
       </Link>
