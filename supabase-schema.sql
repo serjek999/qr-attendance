@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS students (
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     birthdate DATE NOT NULL,
+    year_level VARCHAR(10) CHECK (year_level IN ('Y1', 'Y2', 'YEAR3', 'YEAR4')),
     password_hash VARCHAR(255) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -45,6 +46,7 @@ CREATE TABLE IF NOT EXISTS attendance_records (
     student_id UUID REFERENCES students(id) ON DELETE CASCADE,
     school_id VARCHAR(20) NOT NULL,
     student_name VARCHAR(200) NOT NULL,
+    year_level VARCHAR(10),
     date DATE NOT NULL,
     time_in TIME,
     time_out TIME,

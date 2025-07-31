@@ -749,6 +749,18 @@ const Scan = () => {
                     <span className="font-medium text-blue-900">{scannedStudent.student.first_name} {scannedStudent.student.last_name}</span>
                   </div>
                   <div className="flex justify-between">
+                    <span className="text-blue-700">Year Level:</span>
+                    <span className="font-medium text-blue-900">
+                      {scannedStudent.student.year_level ? (
+                        <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                          {scannedStudent.student.year_level}
+                        </span>
+                      ) : (
+                        <span className="text-gray-500">Not specified</span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
                     <span className="text-blue-700">Birthdate:</span>
                     <span className="text-blue-900">{new Date(scannedStudent.student.birthdate).toLocaleDateString()}</span>
                   </div>

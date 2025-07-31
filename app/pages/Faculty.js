@@ -17,7 +17,8 @@ const Faculty = () => {
   const [filters, setFilters] = useState({
     date: "",
     schoolId: "",
-    studentName: ""
+    studentName: "",
+    yearLevel: ""
   });
   const [isLoading, setIsLoading] = useState(false);
   const [user, setUser] = useState(null);
@@ -73,7 +74,8 @@ const Faculty = () => {
           date: record.date,
           timeIn: record.time_in,
           timeOut: record.time_out,
-          status: record.status
+          status: record.status,
+          yearLevel: record.year_level || 'N/A'
         }));
         
         setAttendanceRecords(formattedRecords);
@@ -106,11 +108,15 @@ const Faculty = () => {
       );
     }
     
+    if (newFilters.yearLevel) {
+      filtered = filtered.filter(record => record.yearLevel === newFilters.yearLevel);
+    }
+    
     setFilteredRecords(filtered);
   };
 
   const clearFilters = () => {
-    setFilters({ date: "", schoolId: "", studentName: "" });
+    setFilters({ date: "", schoolId: "", studentName: "", yearLevel: "" });
     setFilteredRecords(attendanceRecords);
   };
 
@@ -363,7 +369,7 @@ const Faculty = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid md:grid-cols-4 gap-4 mb-4">
+              <div className="grid md:grid-cols-5 gap-4 mb-4">
                 <div className="space-y-2">
                   <Label htmlFor="dateFilter">Date</Label>
                   <Input
@@ -394,6 +400,22 @@ const Faculty = () => {
                     value={filters.studentName}
                     onChange={(e) => handleFilterChange('studentName', e.target.value)}
                   />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="yearLevelFilter">Year Level</Label>
+                  <select
+                    id="yearLevelFilter"
+                    value={filters.yearLevel}
+                    onChange={(e) => handleFilterChange('yearLevel', e.target.value)}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">All Years</option>
+                    <option value="Y1">Y1 - First Year</option>
+                    <option value="Y2">Y2 - Second Year</option>
+                    <option value="YEAR3">YEAR3 - Third Year</option>
+                    <option value="YEAR4">YEAR4 - Fourth Year</option>
+                  </select>
                 </div>
                 
                 <div className="space-y-2">
@@ -433,6 +455,7 @@ const Faculty = () => {
                     <tr className="border-b">
                       <th className="text-left p-3 font-medium text-muted-foreground">School ID</th>
                       <th className="text-left p-3 font-medium text-muted-foreground">Student Name</th>
+                      <th className="text-left p-3 font-medium text-muted-foreground">Year Level</th>
                       <th className="text-left p-3 font-medium text-muted-foreground">Date</th>
                       <th className="text-left p-3 font-medium text-muted-foreground">Time In</th>
                       <th className="text-left p-3 font-medium text-muted-foreground">Time Out</th>
@@ -442,7 +465,7 @@ const Faculty = () => {
                   <tbody>
                     {filteredRecords.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="text-center py-8 text-muted-foreground">
+                        <td colSpan={7} className="text-center py-8 text-muted-foreground">
                           <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
                           <p>No attendance records found</p>
                           <p className="text-sm">Adjust your filters or check back later</p>
@@ -453,6 +476,11 @@ const Faculty = () => {
                         <tr key={record.id} className="border-b hover:bg-muted/20">
                           <td className="p-3 font-mono">{record.schoolId}</td>
                           <td className="p-3">{record.studentName}</td>
+                          <td className="p-3">
+                            <span className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                              {record.yearLevel}
+                            </span>
+                          </td>
                           <td className="p-3">{record.date}</td>
                           <td className="p-3 font-mono">
                             {record.timeIn ? (

@@ -29,6 +29,7 @@ const Student = () => {
     lastName: "",
     firstName: "",
     birthdate: "",
+    yearLevel: "",
   });
   const [loginData, setLoginData] = useState({
     schoolId: "",
@@ -113,7 +114,8 @@ const Student = () => {
         schoolId: formData.schoolId,
         lastName: formData.lastName,
         firstName: formData.firstName,
-        birthdate: formData.birthdate
+        birthdate: formData.birthdate,
+        yearLevel: formData.yearLevel
       });
 
       if (result.success) {
@@ -203,6 +205,7 @@ const Student = () => {
         lastName: student.last_name,
         firstName: student.first_name,
         birthdate: student.birthdate,
+        yearLevel: student.year_level,
       });
       
       toast({
@@ -273,6 +276,10 @@ const Student = () => {
                   <div>
                     <Label className="text-sm font-medium text-muted-foreground">First Name</Label>
                     <p className="text-lg text-foreground">{formData.firstName}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-muted-foreground">Year Level</Label>
+                    <p className="text-lg text-foreground">{formData.yearLevel}</p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-muted-foreground">Birthdate</Label>
@@ -406,6 +413,23 @@ const Student = () => {
                   required
                 />
               </div>
+
+                                <div className="space-y-2">
+                    <Label htmlFor="yearLevel">Year Level (Optional)</Label>
+                    <select
+                      id="yearLevel"
+                      name="yearLevel"
+                      value={formData.yearLevel}
+                      onChange={handleInputChange}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="">Select Year Level (Optional)</option>
+                      <option value="Y1">Y1 - First Year</option>
+                      <option value="Y2">Y2 - Second Year</option>
+                      <option value="YEAR3">YEAR3 - Third Year</option>
+                      <option value="YEAR4">YEAR4 - Fourth Year</option>
+                    </select>
+                  </div>
 
               <div className="space-y-2">
                 <Label htmlFor="birthdate">Birthdate</Label>

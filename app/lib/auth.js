@@ -35,9 +35,9 @@ export const authUtils = {
     // Student registration
     async registerStudent(studentData) {
         try {
-            const { schoolId, lastName, firstName, birthdate } = studentData
+            const { schoolId, lastName, firstName, birthdate, yearLevel } = studentData
 
-            console.log('Registration attempt:', { schoolId, lastName, firstName, birthdate })
+            console.log('Registration attempt:', { schoolId, lastName, firstName, birthdate, yearLevel })
 
             // Generate password from last name and birthdate
             const password = `${lastName}${birthdate}`
@@ -70,6 +70,7 @@ export const authUtils = {
                     first_name: firstName,
                     last_name: lastName,
                     birthdate: birthdate,
+                    year_level: yearLevel || null,
                     password_hash: passwordHash
                 })
                 .select()
@@ -356,6 +357,7 @@ export const authUtils = {
                         student_id: student.id,
                         school_id: schoolId,
                         student_name: `${student.first_name} ${student.last_name}`,
+                        year_level: student.year_level,
                         date: today,
                         time_in: currentTime,
                         recorded_by: officerId,
@@ -398,6 +400,10 @@ export const authUtils = {
                 query = query.ilike('student_name', `%${filters.studentName}%`)
             }
 
+            if (filters.yearLevel) {
+                query = query.eq('year_level', filters.yearLevel)
+            }
+
             if (filters.limit) {
                 query = query.limit(filters.limit)
             }
@@ -429,12 +435,13 @@ export const authUtils = {
             const records = result.data
 
             // Create CSV content
-            const headers = ['School ID', 'Student Name', 'Date', 'Time In', 'Time Out', 'Status']
+            const headers = ['School ID', 'Student Name', 'Year Level', 'Date', 'Time In', 'Time Out', 'Status']
             const csvContent = [
                 headers.join(','),
                 ...records.map(record => [
                     record.school_id,
                     record.student_name,
+                    record.year_level || 'N/A',
                     record.date,
                     record.time_in || '',
                     record.time_out || '',
