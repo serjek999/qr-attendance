@@ -98,7 +98,7 @@ const Student = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.schoolId || !formData.lastName || !formData.firstName || !formData.birthdate) {
+    if (!formData.schoolId || !formData.lastName || !formData.firstName || !formData.birthdate || !formData.yearLevel) {
       toast({
         title: "Error",
         description: "Please fill in all fields",
@@ -415,15 +415,16 @@ const Student = () => {
               </div>
 
                                 <div className="space-y-2">
-                    <Label htmlFor="yearLevel">Year Level (Optional)</Label>
+                    <Label htmlFor="yearLevel">Year Level</Label>
                     <select
                       id="yearLevel"
                       name="yearLevel"
                       value={formData.yearLevel}
                       onChange={handleInputChange}
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      required
                     >
-                      <option value="">Select Year Level (Optional)</option>
+                      <option value="">Select Year Level</option>
                       <option value="Y1">Y1 - First Year</option>
                       <option value="Y2">Y2 - Second Year</option>
                       <option value="YEAR3">YEAR3 - Third Year</option>

@@ -70,7 +70,7 @@ export const authUtils = {
                     first_name: firstName,
                     last_name: lastName,
                     birthdate: birthdate,
-                    year_level: yearLevel || null,
+                    year_level: yearLevel,
                     password_hash: passwordHash
                 })
                 .select()
