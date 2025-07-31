@@ -247,7 +247,7 @@ export const authUtils = {
         try {
             const { data: studentData, error: studentError } = await supabase
                 .from('students')
-                .select('*')
+                .select('*, tribes(name)')
                 .eq('school_id', schoolId)
 
             if (studentError || !studentData || studentData.length === 0) {
@@ -257,7 +257,22 @@ export const authUtils = {
             return { success: true, data: studentData[0] }
         } catch (error) {
             console.error('Get student error:', error)
-            return { success: false, message: 'Failed to get student' }
+
+            // Provide more specific error messages
+            let errorMessage = 'Failed to get student';
+            if (error.message) {
+                if (error.message.includes('network') || error.message.includes('connection')) {
+                    errorMessage = 'Network connection error. Please check your internet connection.';
+                } else if (error.message.includes('permission') || error.message.includes('unauthorized')) {
+                    errorMessage = 'Permission denied. Please check your login credentials.';
+                } else if (error.message.includes('timeout')) {
+                    errorMessage = 'Request timeout. Please try again.';
+                } else {
+                    errorMessage = `Database error: ${error.message}`;
+                }
+            }
+
+            return { success: false, message: errorMessage }
         }
     },
 
@@ -327,7 +342,22 @@ export const authUtils = {
             }
         } catch (error) {
             console.error('Check attendance error:', error)
-            return { success: false, message: 'Failed to check attendance' }
+
+            // Provide more specific error messages
+            let errorMessage = 'Failed to check attendance';
+            if (error.message) {
+                if (error.message.includes('network') || error.message.includes('connection')) {
+                    errorMessage = 'Network connection error. Please check your internet connection.';
+                } else if (error.message.includes('permission') || error.message.includes('unauthorized')) {
+                    errorMessage = 'Permission denied. Please check your login credentials.';
+                } else if (error.message.includes('timeout')) {
+                    errorMessage = 'Request timeout. Please try again.';
+                } else {
+                    errorMessage = `Database error: ${error.message}`;
+                }
+            }
+
+            return { success: false, message: errorMessage }
         }
     },
 
@@ -427,6 +457,7 @@ export const authUtils = {
                     .from('attendance_records')
                     .insert({
                         student_id: student.id,
+                        tribe_id: student.tribe_id,
                         school_id: schoolId,
                         student_name: `${student.first_name} ${student.last_name}`,
                         year_level: student.year_level,
@@ -525,6 +556,274 @@ export const authUtils = {
         } catch (error) {
             console.error('Export CSV error:', error)
             return { success: false, message: 'Failed to export CSV' }
+        }
+    },
+
+    // ====================
+    // TRIBE FUNCTIONS
+    // ====================
+
+    // Get all tribes with their statistics
+    async getAllTribes() {
+        try {
+            // Get all tribes
+            const { data: tribes, error: tribesError } = await supabase
+                .from('tribes')
+                .select('*')
+                .order('name')
+
+            if (tribesError) {
+                console.error('Error fetching tribes:', tribesError)
+                return { success: false, message: 'Failed to fetch tribes' }
+            }
+
+            // Get tribe statistics
+            const tribesWithStats = await Promise.all(
+                tribes.map(async (tribe) => {
+                    const stats = await this.getTribeStats(tribe.id)
+                    return {
+                        ...tribe,
+                        stats: stats.success ? stats.data : {
+                            memberCount: 0,
+                            totalScore: 0,
+                            todayScore: 0,
+                            attendanceRate: 0,
+                            postsCount: 0
+                        }
+                    }
+                })
+            )
+
+            // Calculate rankings
+            const rankedTribes = tribesWithStats
+                .map(tribe => ({
+                    ...tribe,
+                    rank: 0 // Will be calculated below
+                }))
+                .sort((a, b) => b.stats.totalScore - a.stats.totalScore)
+                .map((tribe, index) => ({
+                    ...tribe,
+                    rank: index + 1
+                }))
+
+            return { success: true, data: rankedTribes }
+        } catch (error) {
+            console.error('Get all tribes error:', error)
+            return { success: false, message: 'Failed to get tribes' }
+        }
+    },
+
+    // Get specific tribe with detailed statistics
+    async getTribeDetails(tribeId) {
+        try {
+            // Get tribe information
+            const { data: tribe, error: tribeError } = await supabase
+                .from('tribes')
+                .select('*')
+                .eq('id', tribeId)
+                .single()
+
+            if (tribeError || !tribe) {
+                return { success: false, message: 'Tribe not found' }
+            }
+
+            // Get tribe statistics
+            const stats = await this.getTribeStats(tribeId)
+            const members = await this.getTribeMembers(tribeId)
+            const recentActivity = await this.getTribeRecentActivity(tribeId)
+
+            return {
+                success: true,
+                data: {
+                    ...tribe,
+                    stats: stats.success ? stats.data : {},
+                    members: members.success ? members.data : [],
+                    recentActivity: recentActivity.success ? recentActivity.data : []
+                }
+            }
+        } catch (error) {
+            console.error('Get tribe details error:', error)
+            return { success: false, message: 'Failed to get tribe details' }
+        }
+    },
+
+    // Get tribe statistics
+    async getTribeStats(tribeId) {
+        try {
+            // Get member count
+            const { data: members, error: membersError } = await supabase
+                .from('students')
+                .select('id')
+                .eq('tribe_id', tribeId)
+
+            if (membersError) {
+                console.error('Error fetching tribe members:', membersError)
+                return { success: false, message: 'Failed to fetch tribe members' }
+            }
+
+            const memberCount = members.length
+
+            // Get attendance records for this tribe
+            const today = new Date().toISOString().split('T')[0]
+            const { data: todayAttendance, error: todayError } = await supabase
+                .from('attendance_records')
+                .select('*')
+                .eq('tribe_id', tribeId)
+                .eq('date', today)
+
+            if (todayError) {
+                console.error('Error fetching today attendance:', todayError)
+                return { success: false, message: 'Failed to fetch today attendance' }
+            }
+
+            // Get all attendance records for this tribe (last 30 days for total score)
+            const thirtyDaysAgo = new Date()
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+            const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0]
+
+            const { data: allAttendance, error: allError } = await supabase
+                .from('attendance_records')
+                .select('*')
+                .eq('tribe_id', tribeId)
+                .gte('date', thirtyDaysAgoStr)
+
+            if (allError) {
+                console.error('Error fetching all attendance:', allError)
+                return { success: false, message: 'Failed to fetch attendance records' }
+            }
+
+            // Calculate scores
+            const todayScore = todayAttendance.length * 10 // 10 points per attendance
+            const totalScore = allAttendance.length * 10
+
+            // Calculate attendance rate (last 7 days)
+            const sevenDaysAgo = new Date()
+            sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+            const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0]
+
+            const { data: weekAttendance, error: weekError } = await supabase
+                .from('attendance_records')
+                .select('*')
+                .eq('tribe_id', tribeId)
+                .gte('date', sevenDaysAgoStr)
+
+            if (weekError) {
+                console.error('Error fetching week attendance:', weekError)
+                return { success: false, message: 'Failed to fetch week attendance' }
+            }
+
+            const attendanceRate = memberCount > 0 ? Math.round((weekAttendance.length / (memberCount * 7)) * 100) : 0
+
+            // Get posts count
+            const { data: posts, error: postsError } = await supabase
+                .from('posts')
+                .select('id')
+                .eq('tribe_id', tribeId)
+                .eq('approved', true)
+
+            if (postsError) {
+                console.error('Error fetching posts:', postsError)
+                return { success: false, message: 'Failed to fetch posts' }
+            }
+
+            const postsCount = posts.length
+
+            return {
+                success: true,
+                data: {
+                    memberCount,
+                    totalScore,
+                    todayScore,
+                    attendanceRate,
+                    postsCount
+                }
+            }
+        } catch (error) {
+            console.error('Get tribe stats error:', error)
+            return { success: false, message: 'Failed to get tribe statistics' }
+        }
+    },
+
+    // Get tribe members
+    async getTribeMembers(tribeId) {
+        try {
+            const { data: members, error } = await supabase
+                .from('students')
+                .select('id, school_id, full_name, created_at')
+                .eq('tribe_id', tribeId)
+                .order('full_name')
+
+            if (error) {
+                console.error('Error fetching tribe members:', error)
+                return { success: false, message: 'Failed to fetch tribe members' }
+            }
+
+            return { success: true, data: members }
+        } catch (error) {
+            console.error('Get tribe members error:', error)
+            return { success: false, message: 'Failed to get tribe members' }
+        }
+    },
+
+    // Get tribe recent activity
+    async getTribeRecentActivity(tribeId) {
+        try {
+            // Get recent attendance records
+            const { data: attendance, error: attendanceError } = await supabase
+                .from('attendance_records')
+                .select(`
+                    *,
+                    students!inner(school_id, full_name)
+                `)
+                .eq('tribe_id', tribeId)
+                .order('created_at', { ascending: false })
+                .limit(10)
+
+            if (attendanceError) {
+                console.error('Error fetching attendance activity:', attendanceError)
+                return { success: false, message: 'Failed to fetch attendance activity' }
+            }
+
+            // Get recent posts
+            const { data: posts, error: postsError } = await supabase
+                .from('posts')
+                .select(`
+                    *,
+                    students!inner(school_id, full_name)
+                `)
+                .eq('tribe_id', tribeId)
+                .eq('approved', true)
+                .order('created_at', { ascending: false })
+                .limit(10)
+
+            if (postsError) {
+                console.error('Error fetching posts activity:', postsError)
+                return { success: false, message: 'Failed to fetch posts activity' }
+            }
+
+            // Combine and format activities
+            const activities = [
+                ...attendance.map(record => ({
+                    type: 'attendance',
+                    message: `${record.students.full_name} (${record.students.school_id}) recorded attendance`,
+                    time: new Date(record.created_at).toLocaleString(),
+                    points: 10,
+                    data: record
+                })),
+                ...posts.map(post => ({
+                    type: 'post',
+                    message: `${post.students.full_name} (${post.students.school_id}) shared a post`,
+                    time: new Date(post.created_at).toLocaleString(),
+                    points: 5,
+                    data: post
+                }))
+            ].sort((a, b) => new Date(b.data.created_at) - new Date(a.data.created_at))
+                .slice(0, 10)
+
+            return { success: true, data: activities }
+        } catch (error) {
+            console.error('Get tribe recent activity error:', error)
+            return { success: false, message: 'Failed to get tribe recent activity' }
         }
     }
 } 

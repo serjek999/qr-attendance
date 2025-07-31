@@ -27,6 +27,7 @@ const Scan = () => {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [scannedStudent, setScannedStudent] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isScanningQR, setIsScanningQR] = useState(false);
   const videoRef = useRef(null);
   const qrScannerRef = useRef(null);
   const { toast } = useToast();
@@ -293,10 +294,21 @@ const Scan = () => {
         async (result) => {
           const schoolId = result.data;
           setLastScan(schoolId);
+          setIsScanningQR(true);
           
           // Fast duplicate detection and auto-processing
           try {
-            const attendanceResult = await authUtils.checkStudentAttendance(schoolId);
+            // Add timeout to prevent hanging
+            const timeoutPromise = new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Request timeout')), 10000)
+            );
+            
+            const attendancePromise = authUtils.checkStudentAttendance(schoolId);
+            const attendanceResult = await Promise.race([attendancePromise, timeoutPromise]);
+            
+            // Log the result for debugging
+            console.log('Attendance check result:', attendanceResult);
+            
             if (attendanceResult.success) {
               const timeInfo = getCurrentTimeInfo();
               const studentData = attendanceResult.data;
@@ -360,25 +372,58 @@ const Scan = () => {
               // No toast here - let the dialog handle the user interaction
               
             } else {
+              // Handle different types of errors
+              let errorTitle = "Student Not Found";
+              let errorMessage = attendanceResult.message || "Unknown error occurred";
+              
+              if (attendanceResult.message) {
+                if (attendanceResult.message.includes('not found') || attendanceResult.message.includes('does not exist')) {
+                  errorTitle = "Student Not Found";
+                } else if (attendanceResult.message.includes('database') || attendanceResult.message.includes('connection')) {
+                  errorTitle = "Database Error";
+                } else if (attendanceResult.message.includes('permission') || attendanceResult.message.includes('unauthorized')) {
+                  errorTitle = "Permission Error";
+                } else {
+                  errorTitle = "Error";
+                }
+              }
+              
               toast({
-                title: "Student Not Found",
-                description: attendanceResult.message,
+                title: errorTitle,
+                description: errorMessage,
                 variant: "destructive"
               });
             }
           } catch (error) {
             console.error('Error checking student attendance:', error);
+            
+            // Provide more specific error messages
+            let errorMessage = "Failed to get student information";
+            if (error.message) {
+              if (error.message.includes('not found') || error.message.includes('does not exist')) {
+                errorMessage = "Student not found in database";
+              } else if (error.message.includes('network') || error.message.includes('connection')) {
+                errorMessage = "Network connection error. Please check your internet connection.";
+              } else if (error.message.includes('permission') || error.message.includes('unauthorized')) {
+                errorMessage = "Permission denied. Please check your login credentials.";
+              } else {
+                errorMessage = `Error: ${error.message}`;
+              }
+            }
+            
             toast({
               title: "Error",
-              description: "Failed to get student information",
+              description: errorMessage,
               variant: "destructive"
             });
+          } finally {
+            setIsScanningQR(false);
           }
         },
         {
           returnDetailedScanResult: true,
-          highlightScanRegion: true,
-          highlightCodeOutline: true,
+          highlightScanRegion: false,
+          highlightCodeOutline: false,
         }
       );
       
@@ -519,6 +564,17 @@ const Scan = () => {
                       <div className="text-center text-white">
                         <Camera className="h-16 w-16 mx-auto mb-4 opacity-50" />
                         <p>Camera preview will appear here</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Processing indicator */}
+                  {isScanningQR && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/70">
+                      <div className="text-center text-white">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+                        <p>Processing QR code...</p>
+                        <p className="text-sm opacity-75">Please wait</p>
                       </div>
                     </div>
                   )}

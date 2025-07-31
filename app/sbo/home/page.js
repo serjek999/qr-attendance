@@ -499,17 +499,34 @@ const SboHome = () => {
                         }
                     } catch (error) {
                         console.error('Error checking student attendance:', error);
+
+                        // Provide more specific error messages
+                        let errorMessage = "Failed to get student information";
+                        if (error.message) {
+                            if (error.message.includes('not found') || error.message.includes('does not exist')) {
+                                errorMessage = "Student not found in database";
+                            } else if (error.message.includes('network') || error.message.includes('connection')) {
+                                errorMessage = "Network connection error. Please check your internet connection.";
+                            } else if (error.message.includes('permission') || error.message.includes('unauthorized')) {
+                                errorMessage = "Permission denied. Please check your login credentials.";
+                            } else if (error.message.includes('timeout')) {
+                                errorMessage = "Request timeout. Please try again.";
+                            } else {
+                                errorMessage = `Error: ${error.message}`;
+                            }
+                        }
+
                         toast({
                             title: "Error",
-                            description: "Failed to get student information",
+                            description: errorMessage,
                             variant: "destructive"
                         });
                     }
                 },
                 {
                     returnDetailedScanResult: true,
-                    highlightScanRegion: true,
-                    highlightCodeOutline: true,
+                    highlightScanRegion: false,
+                    highlightCodeOutline: false,
                 }
             );
 
@@ -621,17 +638,34 @@ const SboHome = () => {
                         }
                     } catch (error) {
                         console.error('Error checking student attendance:', error);
+
+                        // Provide more specific error messages
+                        let errorMessage = "Failed to get student information";
+                        if (error.message) {
+                            if (error.message.includes('not found') || error.message.includes('does not exist')) {
+                                errorMessage = "Student not found in database";
+                            } else if (error.message.includes('network') || error.message.includes('connection')) {
+                                errorMessage = "Network connection error. Please check your internet connection.";
+                            } else if (error.message.includes('permission') || error.message.includes('unauthorized')) {
+                                errorMessage = "Permission denied. Please check your login credentials.";
+                            } else if (error.message.includes('timeout')) {
+                                errorMessage = "Request timeout. Please try again.";
+                            } else {
+                                errorMessage = `Error: ${error.message}`;
+                            }
+                        }
+
                         toast({
                             title: "Error",
-                            description: "Failed to get student information",
+                            description: errorMessage,
                             variant: "destructive"
                         });
                     }
                 },
                 {
                     returnDetailedScanResult: true,
-                    highlightScanRegion: true,
-                    highlightCodeOutline: true,
+                    highlightScanRegion: false,
+                    highlightCodeOutline: false,
                 }
             );
 
