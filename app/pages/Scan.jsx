@@ -7,7 +7,7 @@ import { ScanLine, Camera, CheckCircle, XCircle, Clock, ArrowLeft, LogOut, User,
 import Link from "next/link";
 import QrScanner from "qr-scanner";
 import LoginForm from "@/components/LoginForm.jsx";
-import { authUtils } from "../lib/auth";
+import { authUtils } from "@/app/lib/auth";
 import {
   Dialog,
   DialogContent,
@@ -424,6 +424,7 @@ const Scan = () => {
           returnDetailedScanResult: true,
           highlightScanRegion: false,
           highlightCodeOutline: false,
+          overlay: false
         }
       );
       
@@ -566,6 +567,11 @@ const Scan = () => {
                         <p>Camera preview will appear here</p>
                       </div>
                     </div>
+                  )}
+                  
+                  {/* Custom yellow broken line overlay when scanning */}
+                  {isScanning && !isScanningQR && (
+                    <div className="qr-scanner-overlay"></div>
                   )}
                   
                   {/* Processing indicator */}
