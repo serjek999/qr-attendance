@@ -154,7 +154,9 @@
 /* Override any green highlighting from QR scanner */
 .qr-scanner canvas,
 .qr-scanner .highlight-region,
-.qr-scanner .scan-region {
+.qr-scanner .scan-region,
+.qr-scanner .qr-code-highlight,
+.qr-scanner .qr-code-outline {
   border: 2px dashed #fbbf24 !important;
   background-color: rgba(251, 191, 36, 0.1) !important;
   border-radius: 8px !important;
@@ -163,9 +165,25 @@
 /* Remove any green squares */
 .qr-scanner .green-square,
 .qr-scanner .highlight-square,
-.qr-scanner [style*="green"] {
+.qr-scanner [style*="green"],
+.qr-scanner [style*="rgb(0, 255, 0)"],
+.qr-scanner [style*="#00ff00"],
+.qr-scanner [style*="#0f0"] {
   border-color: #fbbf24 !important;
   background-color: rgba(251, 191, 36, 0.1) !important;
+  color: #fbbf24 !important;
+}
+
+/* Force all QR scanner elements to use yellow */
+.qr-scanner * {
+  border-color: #fbbf24 !important;
+  color: #fbbf24 !important;
+}
+
+.qr-scanner *[style*="green"] {
+  border-color: #fbbf24 !important;
+  background-color: rgba(251, 191, 36, 0.1) !important;
+  color: #fbbf24 !important;
 }
 
 /* Custom yellow broken line overlay */
@@ -176,23 +194,25 @@
   transform: translate(-50%, -50%);
   width: 250px;
   height: 250px;
-  border: 3px dashed #fbbf24;
+  border: 4px dashed #fbbf24;
   border-radius: 12px;
   pointer-events: none;
   z-index: 10;
-  box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+  box-shadow: 0 0 30px rgba(251, 191, 36, 0.5);
+  background-color: rgba(251, 191, 36, 0.05);
 }
 
 .qr-scanner-overlay::before {
   content: '';
   position: absolute;
-  top: -4px;
-  left: -4px;
-  right: -4px;
-  bottom: -4px;
-  border: 2px dashed #fbbf24;
-  border-radius: 16px;
+  top: -6px;
+  left: -6px;
+  right: -6px;
+  bottom: -6px;
+  border: 3px dashed #fbbf24;
+  border-radius: 18px;
   animation: pulse 2s infinite;
+  opacity: 0.8;
 }
 
 .qr-scanner-overlay::after {
@@ -225,9 +245,34 @@
 
 @keyframes pulse {
   0%, 100% {
-    opacity: 0.5;
+    opacity: 0.7;
   }
   50% {
     opacity: 1;
   }
+}
+
+/* Additional styles for better QR scanner visibility */
+.qr-scanner-overlay {
+  animation: glow 2s ease-in-out infinite alternate;
+  border-width: 5px !important;
+  border-style: dashed !important;
+  border-color: #fbbf24 !important;
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 0 30px rgba(251, 191, 36, 0.5);
+  }
+  to {
+    box-shadow: 0 0 40px rgba(251, 191, 36, 0.8), 0 0 60px rgba(251, 191, 36, 0.3);
+  }
+}
+
+/* Make the yellow trace line more visible */
+.qr-scanner-overlay::before {
+  border-width: 4px !important;
+  border-style: dashed !important;
+  border-color: #fbbf24 !important;
+  opacity: 1 !important;
 }

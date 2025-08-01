@@ -11,23 +11,26 @@ const Auth = () => {
         // Store user data (in real app, use proper state management)
         localStorage.setItem("currentUser", JSON.stringify(user));
 
-        // Redirect based on role with new home routes
-        switch (user.role) {
-            case "admin":
-                router.push("/admin/home");
-                break;
-            case "faculty":
-                router.push("/faculty/home");
-                break;
-            case "sbo":
-                router.push("/sbo/home");
-                break;
-            case "student":
-                router.push("/student/home");
-                break;
-            default:
-                router.push("/");
-        }
+        // Add a small delay to ensure localStorage is updated
+        setTimeout(() => {
+            // Redirect based on role with new modular routes
+            switch (user.role) {
+                case "admin":
+                    router.push("/admin/dashboard");
+                    break;
+                case "faculty":
+                    router.push("/faculty/dashboard");
+                    break;
+                case "sbo":
+                    router.push("/sbo/home");
+                    break;
+                case "student":
+                    router.push("/student/dashboard");
+                    break;
+                default:
+                    router.push("/");
+            }
+        }, 100);
     };
 
     return <AuthForm onAuth={handleAuth} />;

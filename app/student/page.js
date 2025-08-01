@@ -2,11 +2,11 @@
 
 import dynamic from 'next/dynamic';
 
-const Student = dynamic(() => import('../pages/Student.jsx'), {
+const StudentDashboard = dynamic(() => import('./dashboard/page'), {
     ssr: false,
     loading: () => <div>Loading...</div>
 });
 
 export default function StudentPage() {
-    return <Student />;
+    return <StudentDashboard />;
 } 
