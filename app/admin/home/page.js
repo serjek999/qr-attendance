@@ -10,12 +10,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
+import EventsManagement from '@/components/EventsManagement';
 import {
     GraduationCap,
     Trophy,
     Users,
     Calendar,
-    ArrowLeft,
     LogOut,
     Home,
     BarChart3,
@@ -529,15 +529,15 @@ const AdminHome = () => {
     const NavigationContent = () => (
         <div className="space-y-6 overflow-y-auto max-h-screen">
             {/* User Profile Card */}
-            <Card>
+            <Card className="bg-white/10 backdrop-blur-md border border-white/20">
                 <CardContent className="p-6">
                     <div className="text-center">
                         <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-orange-600 rounded-full flex items-center justify-center text-white font-bold text-xl mx-auto mb-4">
                             {user?.full_name?.split(' ').map(n => n[0]).join('') || 'A'}
                         </div>
-                        <h3 className="font-semibold text-lg">{user?.full_name || 'Admin'}</h3>
-                        <p className="text-sm text-muted-foreground">Administrator</p>
-                        <Badge variant="secondary" className="mt-2">
+                        <h3 className="font-semibold text-lg text-white">{user?.full_name || 'Admin'}</h3>
+                        <p className="text-sm text-white/70">Administrator</p>
+                        <Badge className="mt-2 bg-white/20 text-white">
                             <Crown className="h-3 w-3 mr-1" />
                             System Admin
                         </Badge>
@@ -545,64 +545,14 @@ const AdminHome = () => {
                 </CardContent>
             </Card>
 
-            {/* Quick Actions */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-lg">Quick Actions</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                    <Button
-                        onClick={() => setActiveTab("reports")}
-                        className="w-full"
-                        variant="default"
-                    >
-                        <BarChart3 className="h-4 w-4 mr-2" />
-                        View Reports
-                    </Button>
-                    <Button
-                        onClick={() => {
-                            toast({
-                                title: "User Management",
-                                description: "User management panel will be available soon."
-                            });
-                        }}
-                        variant="outline"
-                        className="w-full"
-                    >
-                        <UserPlus className="h-4 w-4 mr-2" />
-                        Manage Users
-                    </Button>
-                    <Button
-                        onClick={() => setShowTribeModal(true)}
-                        variant="outline"
-                        className="w-full"
-                    >
-                        <Users className="h-4 w-4 mr-2" />
-                        Manage Tribes
-                    </Button>
-                    <Button
-                        onClick={() => {
-                            toast({
-                                title: "System Settings",
-                                description: "System settings panel will be available soon."
-                            });
-                        }}
-                        variant="outline"
-                        className="w-full"
-                    >
-                        <Database className="h-4 w-4 mr-2" />
-                        System Settings
-                    </Button>
-                </CardContent>
-            </Card>
+
 
             {/* Navigation */}
-            <Card>
+            <Card className="bg-white/10 backdrop-blur-md border border-white/20">
                 <CardContent className="p-4">
                     <nav className="space-y-2">
                         <Button
-                            variant={activeTab === "overview" ? "default" : "ghost"}
-                            className="w-full justify-start"
+                            className={`w-full justify-start ${activeTab === "overview" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
                             onClick={() => {
                                 setActiveTab("overview");
                                 setIsSheetOpen(false);
@@ -612,8 +562,7 @@ const AdminHome = () => {
                             Overview
                         </Button>
                         <Button
-                            variant={activeTab === "reports" ? "default" : "ghost"}
-                            className="w-full justify-start"
+                            className={`w-full justify-start ${activeTab === "reports" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
                             onClick={() => {
                                 setActiveTab("reports");
                                 setIsSheetOpen(false);
@@ -623,8 +572,7 @@ const AdminHome = () => {
                             Reports
                         </Button>
                         <Button
-                            variant={activeTab === "leaderboard" ? "default" : "ghost"}
-                            className="w-full justify-start"
+                            className={`w-full justify-start ${activeTab === "leaderboard" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
                             onClick={() => {
                                 setActiveTab("leaderboard");
                                 setIsSheetOpen(false);
@@ -634,8 +582,7 @@ const AdminHome = () => {
                             Leaderboard
                         </Button>
                         <Button
-                            variant={activeTab === "analytics" ? "default" : "ghost"}
-                            className="w-full justify-start"
+                            className={`w-full justify-start ${activeTab === "analytics" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
                             onClick={() => {
                                 setActiveTab("analytics");
                                 setIsSheetOpen(false);
@@ -645,8 +592,7 @@ const AdminHome = () => {
                             Analytics
                         </Button>
                         <Button
-                            variant={activeTab === "posts" ? "default" : "ghost"}
-                            className="w-full justify-start"
+                            className={`w-full justify-start ${activeTab === "posts" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
                             onClick={() => {
                                 setActiveTab("posts");
                                 setIsSheetOpen(false);
@@ -656,8 +602,7 @@ const AdminHome = () => {
                             All Posts
                         </Button>
                         <Button
-                            variant={activeTab === "management" ? "default" : "ghost"}
-                            className="w-full justify-start"
+                            className={`w-full justify-start ${activeTab === "management" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
                             onClick={() => {
                                 setActiveTab("management");
                                 setIsSheetOpen(false);
@@ -666,39 +611,59 @@ const AdminHome = () => {
                             <ShieldCheck className="h-4 w-4 mr-2" />
                             Management
                         </Button>
+                        <Button
+                            className={`w-full justify-start ${activeTab === "events" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
+                            onClick={() => {
+                                setActiveTab("events");
+                                setIsSheetOpen(false);
+                            }}
+                        >
+                            <Calendar className="h-4 w-4 mr-2" />
+                            Events
+                        </Button>
+                        <Button
+                            className={`w-full justify-start ${activeTab === "scoring" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
+                            onClick={() => {
+                                setActiveTab("scoring");
+                                setIsSheetOpen(false);
+                            }}
+                        >
+                            <Trophy className="h-4 w-4 mr-2" />
+                            Tribe Scoring
+                        </Button>
                     </nav>
                 </CardContent>
             </Card>
 
             {/* Quick Stats */}
-            <Card>
+            <Card className="bg-white/10 backdrop-blur-md border border-white/20">
                 <CardHeader>
-                    <CardTitle className="text-lg">System Overview</CardTitle>
+                    <CardTitle className="text-lg text-white">System Overview</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Total Students</span>
-                        <span className="font-semibold text-blue-600">{stats.totalStudents}</span>
+                        <span className="text-sm text-white/70">Total Students</span>
+                        <span className="font-semibold text-blue-400">{stats.totalStudents}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">SBO Officers</span>
-                        <span className="font-semibold text-green-600">{stats.totalSBO}</span>
+                        <span className="text-sm text-white/70">SBO Officers</span>
+                        <span className="font-semibold text-green-400">{stats.totalSBO}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Faculty Members</span>
-                        <span className="font-semibold text-purple-600">{stats.totalFaculty}</span>
+                        <span className="text-sm text-white/70">Faculty Members</span>
+                        <span className="font-semibold text-purple-400">{stats.totalFaculty}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Attendance Rate</span>
-                        <span className="font-semibold text-orange-600">{stats.attendanceRate}%</span>
+                        <span className="text-sm text-white/70">Attendance Rate</span>
+                        <span className="font-semibold text-orange-400">{stats.attendanceRate}%</span>
                     </div>
                 </CardContent>
             </Card>
 
             {/* Notifications */}
-            <Card>
+            <Card className="bg-white/10 backdrop-blur-md border border-white/20">
                 <CardHeader>
-                    <CardTitle className="text-lg flex items-center">
+                    <CardTitle className="text-lg flex items-center text-white">
                         <Bell className="h-4 w-4 mr-2" />
                         Notifications
                     </CardTitle>
@@ -706,24 +671,24 @@ const AdminHome = () => {
                 <CardContent>
                     <div className="space-y-3">
                         <div className="flex items-start space-x-3">
-                            <div className="w-2 h-2 bg-red-500 rounded-full mt-2"></div>
+                            <div className="w-2 h-2 bg-red-400 rounded-full mt-2"></div>
                             <div>
-                                <p className="text-sm font-medium">System update available</p>
-                                <p className="text-xs text-muted-foreground">New features ready to deploy</p>
+                                <p className="text-sm font-medium text-white">System update available</p>
+                                <p className="text-xs text-white/50">New features ready to deploy</p>
                             </div>
                         </div>
                         <div className="flex items-start space-x-3">
-                            <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+                            <div className="w-2 h-2 bg-green-400 rounded-full mt-2"></div>
                             <div>
-                                <p className="text-sm font-medium">High attendance rate</p>
-                                <p className="text-xs text-muted-foreground">94.5% attendance today</p>
+                                <p className="text-sm font-medium text-white">High attendance rate</p>
+                                <p className="text-xs text-white/50">94.5% attendance today</p>
                             </div>
                         </div>
                         <div className="flex items-start space-x-3">
-                            <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                            <div className="w-2 h-2 bg-blue-400 rounded-full mt-2"></div>
                             <div>
-                                <p className="text-sm font-medium">New user registration</p>
-                                <p className="text-xs text-muted-foreground">2 new SBO officers added</p>
+                                <p className="text-sm font-medium text-white">New user registration</p>
+                                <p className="text-xs text-white/50">2 new SBO officers added</p>
                             </div>
                         </div>
                     </div>
@@ -737,28 +702,13 @@ const AdminHome = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen" style={{ backgroundColor: '#13392F' }}>
             {/* Header */}
-            <div className="bg-white border-b sticky top-0 z-50">
+            <div className="bg-white/10 backdrop-blur-md border-b border-white/20 sticky top-0 z-50">
                 <div className="max-w-6xl mx-auto px-4">
                     <div className="flex items-center justify-between h-16">
                         <div className="flex items-center space-x-4">
-                            <Link href="/" className="text-primary hover:text-primary/80">
-                                <ArrowLeft className="h-5 w-5" />
-                            </Link>
-                            <div className="flex items-center space-x-2">
-                                <Crown className="h-6 w-6 text-red-600" />
-                                <span className="font-semibold text-lg">Admin Portal</span>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center space-x-4">
-                            <div className="hidden sm:flex items-center space-x-2 bg-red-50 px-3 py-1 rounded-full">
-                                <Crown className="h-4 w-4 text-red-600" />
-                                <span className="text-sm font-medium text-red-800">Administrator</span>
-                            </div>
-
-                            {/* Mobile Menu */}
+                            {/* Mobile Menu - Moved to left side */}
                             {isMobile && (
                                 <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                                     <SheetTrigger asChild>
@@ -777,6 +727,18 @@ const AdminHome = () => {
                                 </Sheet>
                             )}
 
+                            <div className="flex items-center space-x-2">
+                                <Crown className="h-6 w-6 text-white" />
+                                <span className="font-semibold text-lg text-white">Admin Portal</span>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center space-x-4">
+                            <div className="hidden sm:flex items-center space-x-2 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full">
+                                <Crown className="h-4 w-4 text-white" />
+                                <span className="text-sm font-medium text-white">Administrator</span>
+                            </div>
+
                             <Button variant="ghost" size="sm" onClick={handleLogout}>
                                 <LogOut className="h-4 w-4" />
                             </Button>
@@ -790,7 +752,9 @@ const AdminHome = () => {
                     {/* Left Sidebar - Desktop Only */}
                     {!isMobile && (
                         <div className="lg:col-span-1 sticky top-20 space-y-6">
-                            <NavigationContent />
+                            <div className="bg-white/10 backdrop-blur-md rounded-lg border border-white/20 p-6">
+                                <NavigationContent />
+                            </div>
                         </div>
                     )}
 
@@ -1174,6 +1138,9 @@ const AdminHome = () => {
                                 </Card>
                             </div>
                         )}
+
+                        {activeTab === "events" && <EventsManagement user={user} />}
+                        {activeTab === "scoring" && <EventsManagement user={user} />}
                     </div>
                 </div>
             </div>

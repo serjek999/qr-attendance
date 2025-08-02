@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Trophy, Medal, Star, Users, ArrowLeft, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { authUtils } from "../lib/auth";
+import TribePerformance from "@/components/TribePerformance";
 
 const Leaderboard = () => {
     const [tribes, setTribes] = useState([]);
@@ -82,10 +83,10 @@ const Leaderboard = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5 py-8">
+        <div className="min-h-screen py-8" style={{ backgroundColor: '#13392F' }}>
             <div className="container mx-auto px-4">
                 <div className="flex items-center justify-between mb-6">
-                    <Link href="/" className="inline-flex items-center text-primary hover:text-primary/80">
+                    <Link href="/" className="inline-flex items-center text-white hover:text-white/80">
                         <ArrowLeft className="h-4 w-4 mr-2" />
                         Back to Home
                     </Link>
@@ -93,7 +94,7 @@ const Leaderboard = () => {
                     <button
                         onClick={fetchTribes}
                         disabled={loading}
-                        className="inline-flex items-center text-primary hover:text-primary/80 disabled:opacity-50"
+                        className="inline-flex items-center text-white hover:text-white/80 disabled:opacity-50"
                     >
                         <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                         Refresh
@@ -173,66 +174,7 @@ const Leaderboard = () => {
 
                     {/* Full Rankings */}
                     {!loading && !error && (
-                        <Card variant="elevated">
-                            <CardHeader>
-                                <CardTitle className="flex items-center">
-                                    <Users className="h-5 w-5 mr-2" />
-                                    Complete Rankings
-                                </CardTitle>
-                                <CardDescription>
-                                    Updated in real-time based on attendance and participation
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                {tribes.length === 0 ? (
-                                    <div className="text-center py-8 text-muted-foreground">
-                                        <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                                        <p>No tribes found</p>
-                                        <p className="text-sm">Tribes will appear here once they have members and activity</p>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-4">
-                                        {tribes.map((tribe) => (
-                                            <div
-                                                key={tribe.id}
-                                                className={`flex items-center justify-between p-4 rounded-lg border transition-all hover:shadow-md ${tribe.rank <= 3 ? 'bg-gradient-to-r from-primary/5 to-accent/5' : 'bg-muted/30'
-                                                    }`}
-                                            >
-                                                <div className="flex items-center space-x-4">
-                                                    <div className="flex items-center space-x-2">
-                                                        {getRankIcon(tribe.rank)}
-                                                        <span className="text-2xl font-bold text-muted-foreground">#{tribe.rank}</span>
-                                                    </div>
-
-                                                    <div className={`w-12 h-12 ${getTribeColor(tribe.name)} rounded-full flex items-center justify-center`}>
-                                                        <span className="text-white font-bold">{tribe.name[0]}</span>
-                                                    </div>
-
-                                                    <div>
-                                                        <h4 className="text-lg font-semibold">Tribe {tribe.name}</h4>
-                                                        <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                                                            <span>{tribe.stats.memberCount} members</span>
-                                                            <span>•</span>
-                                                            <span>{tribe.stats.attendanceRate}% attendance</span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex items-center space-x-4">
-                                                    <div className="text-right">
-                                                        <p className="text-2xl font-bold text-primary">{tribe.stats.totalScore}</p>
-                                                        <p className="text-sm text-muted-foreground">points</p>
-                                                        <div className="text-xs text-green-600">
-                                                            +{tribe.stats.todayScore} today
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
+                        <TribePerformance />
                     )}
 
                     {/* Statistics */}

@@ -75,12 +75,12 @@ const TribePerformance = () => {
 
     if (loading) {
         return (
-            <div className="bg-white rounded-lg shadow p-6">
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-6">
                 <div className="animate-pulse">
-                    <div className="h-6 bg-gray-200 rounded w-1/4 mb-4"></div>
+                    <div className="h-6 bg-white/20 rounded w-1/4 mb-4"></div>
                     <div className="space-y-3">
                         {[...Array(3)].map((_, i) => (
-                            <div key={i} className="h-16 bg-gray-200 rounded"></div>
+                            <div key={i} className="h-16 bg-white/20 rounded"></div>
                         ))}
                     </div>
                 </div>
@@ -89,26 +89,26 @@ const TribePerformance = () => {
     }
 
     return (
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-6">
             <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold">Tribe Performance</h2>
-                <div className="flex items-center space-x-2 text-sm text-gray-600">
+                <h2 className="text-xl font-semibold text-white">Tribe Performance</h2>
+                <div className="flex items-center space-x-2 text-sm text-white/70">
                     <TrendingUp className="h-4 w-4" />
-                    <span>Today's Attendance</span>
+                    <span>Today&apos;s Attendance</span>
                 </div>
             </div>
 
             <div className="space-y-4">
                 {tribes.map((tribe, index) => (
-                    <div key={tribe.id} className="border rounded-lg p-4">
+                    <div key={tribe.id} className="border border-white/20 rounded-lg p-4 bg-white/5">
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3">
                                 {index === 0 && (
-                                    <Award className="h-5 w-5 text-yellow-500" />
+                                    <Award className="h-5 w-5 text-yellow-400" />
                                 )}
                                 <div>
-                                    <h3 className="font-semibold text-lg">{tribe.name}</h3>
-                                    <div className="flex items-center space-x-4 text-sm text-gray-600">
+                                    <h3 className="font-semibold text-lg text-white">{tribe.name}</h3>
+                                    <div className="flex items-center space-x-4 text-sm text-white/70">
                                         <div className="flex items-center space-x-1">
                                             <Users className="h-4 w-4" />
                                             <span>{tribe.totalMembers} members</span>
@@ -122,19 +122,19 @@ const TribePerformance = () => {
                             </div>
 
                             <div className="text-right">
-                                <div className="text-2xl font-bold text-gray-900">
+                                <div className="text-2xl font-bold text-white">
                                     {tribe.attendanceRate}%
                                 </div>
-                                <div className="text-sm text-gray-600">attendance rate</div>
+                                <div className="text-sm text-white/70">attendance rate</div>
                             </div>
                         </div>
 
                         {/* Progress bar */}
                         <div className="mt-3">
-                            <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div className="w-full bg-white/20 rounded-full h-2">
                                 <div
-                                    className={`h-2 rounded-full transition-all duration-300 ${tribe.attendanceRate >= 80 ? 'bg-green-500' :
-                                        tribe.attendanceRate >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                                    className={`h-2 rounded-full transition-all duration-300 ${tribe.attendanceRate >= 80 ? 'bg-green-400' :
+                                        tribe.attendanceRate >= 60 ? 'bg-yellow-400' : 'bg-red-400'
                                         }`}
                                     style={{ width: `${tribe.attendanceRate}%` }}
                                 ></div>
@@ -145,7 +145,7 @@ const TribePerformance = () => {
             </div>
 
             {tribes.length === 0 && (
-                <div className="text-center py-8 text-gray-600">
+                <div className="text-center py-8 text-white/70">
                     <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
                     <p>No tribes found</p>
                     <p className="text-sm">Create tribes to start tracking performance</p>

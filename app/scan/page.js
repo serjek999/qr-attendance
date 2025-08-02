@@ -2,9 +2,9 @@
 
 import dynamic from 'next/dynamic';
 
-const Scan = dynamic(() => import('../pages/Scan.jsx'), {
+const Scan = dynamic(() => import('../sbo/home/page.js'), {
     ssr: false,
-    loading: () => <div>Loading. . .</div>
+    loading: () => <div>Loading...</div>
 });
 
 export default function ScanPage() {

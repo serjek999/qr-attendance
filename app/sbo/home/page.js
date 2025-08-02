@@ -5,24 +5,30 @@ import { useAuthUser } from '@/hooks/useAuthUser';
 import { useScanner } from '@/hooks/useScanner';
 import { useAttendanceStats } from '@/hooks/useAttendanceStats';
 import { usePosts } from '@/hooks/usePosts';
+import { useCardAnimation } from '@/hooks/useCardAnimation';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Menu, ArrowLeft, LogOut } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Menu, LogOut, Target, UserCheck, Clock, History, QrCode } from "lucide-react";
 import Link from "next/link";
 import Sidebar from '@/app/sbo/components/Sidebar';
 import ScannerModal from '@/app/sbo/components/ScannerModal';
 import StudentPopup from '@/app/sbo/components/StudentPopup';
-import PostFeed from '@/app/sbo/components/PostFeed';
+import PostsFeed from '@/app/sbo/components/PostsFeed';
 import PostModeration from '@/app/sbo/components/PostModeration';
 import ReportsPanel from '@/app/sbo/components/ReportsPanel';
 import ScanHistory from '@/app/sbo/components/ScanHistory';
+import EventsManagement from '@/components/EventsManagement';
 
 const SboHome = () => {
     const { user, loading, logout } = useAuthUser();
     const [activeTab, setActiveTab] = useState("scan");
     const [isMobile, setIsMobile] = useState(false);
     const [isSheetOpen, setIsSheetOpen] = useState(false);
+
+    // Card animation hook - 6 main cards (welcome, 3 scanner stats, QR scanner, recent scans)
+    const { getCardAnimationClass, getCardDelayClass } = useCardAnimation(6, 150);
 
     useEffect(() => {
         // Check if mobile
@@ -84,26 +90,13 @@ const SboHome = () => {
     );
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen" style={{ backgroundColor: '#13392F' }}>
             {/* Header */}
-            <div className="bg-white border-b sticky top-0 z-50">
-                <div className="max-w-7xl mx-auto px-4">
+            <div className="bg-white/10 backdrop-blur-md border-b border-white/20 sticky top-0 z-50">
+                <div className="max-w-6xl mx-auto px-4">
                     <div className="flex items-center justify-between h-16">
                         <div className="flex items-center space-x-4">
-                            <Link href="/" className="text-primary hover:text-primary/80">
-                                <ArrowLeft className="h-5 w-5" />
-                            </Link>
-                            <div className="flex items-center space-x-2">
-                                <span className="font-semibold text-lg">SBO Portal</span>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center space-x-4">
-                            <div className="hidden sm:flex items-center space-x-2 bg-blue-50 px-3 py-1 rounded-full">
-                                <span className="text-sm font-medium text-blue-800">SBO Officer</span>
-                            </div>
-
-                            {/* Mobile Menu */}
+                            {/* Mobile Menu - Moved to left side */}
                             {isMobile && (
                                 <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                                     <SheetTrigger asChild>
@@ -122,7 +115,19 @@ const SboHome = () => {
                                 </Sheet>
                             )}
 
-                            <Button variant="ghost" size="sm" onClick={logout}>
+                            <div className="flex items-center space-x-2">
+                                <Target className="h-6 w-6 text-white" />
+                                <span className="font-semibold text-lg text-white">SBO Portal</span>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center space-x-4">
+                            <div className="hidden sm:flex items-center space-x-2 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full">
+                                <Target className="h-4 w-4 text-white" />
+                                <span className="text-sm font-medium text-white">SBO Officer</span>
+                            </div>
+
+                            <Button variant="ghost" size="sm" onClick={logout} className="text-gray-400 hover:text-gray-300 hover:bg-gray-800/20">
                                 <LogOut className="h-4 w-4" />
                             </Button>
                         </div>
@@ -130,90 +135,123 @@ const SboHome = () => {
                 </div>
             </div>
 
-            {/* Main Content */}
-            <div className="flex">
-                {/* Desktop Sidebar */}
-                {!isMobile && (
-                    <div className="w-80 bg-white border-r border-gray-200 min-h-screen">
-                        <div className="sticky top-20 space-y-6 p-6">
-                            <NavigationContent />
-                        </div>
-                    </div>
-                )}
-
-                {/* Content Area */}
-                <div className="flex-1 flex flex-col">
-                    {/* Content Header */}
-                    <header className="bg-white border-b border-gray-200 px-6 py-4">
-                        <div className="flex justify-between items-center">
-                            <div>
-                                <h1 className="text-2xl font-bold text-gray-900">
-                                    {activeTab === "scan" && "QR Scanner"}
-                                    {activeTab === "feed" && "Posts Feed"}
-                                    {activeTab === "moderation" && "Post Moderation"}
-                                    {activeTab === "reports" && "Attendance Reports"}
-                                </h1>
-                                <p className="text-gray-600">
-                                    {activeTab === "scan" && "Scan student QR codes for attendance"}
-                                    {activeTab === "feed" && "Manage announcements and posts"}
-                                    {activeTab === "moderation" && "Review and approve pending posts"}
-                                    {activeTab === "reports" && "View attendance statistics and reports"}
-                                </p>
+            <div className="max-w-6xl mx-auto px-4 py-6">
+                <div className={`grid gap-6 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-4'}`}>
+                    {/* Left Sidebar - Desktop Only */}
+                    {!isMobile && (
+                        <div className="lg:col-span-1 sticky top-20 space-y-6">
+                            <div className="bg-white/10 backdrop-blur-md rounded-lg border border-white/20 p-6">
+                                <NavigationContent />
                             </div>
                         </div>
-                    </header>
+                    )}
 
-                    {/* Content Area */}
-                    <ScrollArea className="flex-1">
-                        <main className="p-6">
-                            <div className="max-w-7xl mx-auto">
-                                {activeTab === "scan" && (
-                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                        {/* Main Scanner Area */}
-                                        <div className="lg:col-span-2">
-                                            <div className="bg-white rounded-lg shadow p-6">
-                                                <div className="text-center mb-6">
-                                                    <h2 className="text-xl font-semibold mb-2">QR Code Scanner</h2>
-                                                    <p className="text-gray-600">
-                                                        Scan student QR codes to record attendance
-                                                    </p>
+                    {/* Main Content */}
+                    <div className={`space-y-6 ${isMobile ? '' : 'lg:col-span-3'}`}>
+                        {activeTab === "scan" && (
+                            <div className="space-y-6">
+                                {/* Welcome Card */}
+                                <Card className={`bg-white/10 backdrop-blur-md border border-white/20 ${getCardAnimationClass(0)} ${getCardDelayClass(0)}`}>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center text-white">
+                                            <Target className="h-5 w-5 mr-2 text-blue-600" />
+                                            Welcome, {user?.full_name || 'SBO Officer'}!
+                                        </CardTitle>
+                                        <CardDescription className="text-white/70">QR scanning and attendance management dashboard</CardDescription>
+                                    </CardHeader>
+                                </Card>
+
+                                {/* Scanner Stats Cards */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <Card className={`bg-white/10 backdrop-blur-md border border-white/20 ${getCardAnimationClass(1)} ${getCardDelayClass(1)}`}>
+                                        <CardContent className="p-6">
+                                            <div className="flex items-center space-x-4">
+                                                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                                                    <UserCheck className="h-6 w-6 text-green-600" />
                                                 </div>
-
-                                                <div className="text-center">
-                                                    <button
-                                                        onClick={startFullScreenScanning}
-                                                        className="bg-primary text-primary-foreground px-8 py-4 rounded-lg text-lg font-medium hover:bg-primary/90 transition-colors"
-                                                    >
-                                                        Start QR Scanner
-                                                    </button>
-                                                </div>
-
-                                                {/* Time Info */}
-                                                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                                                    <h3 className="font-semibold text-blue-900 mb-2">Current Time Status:</h3>
-                                                    <div className="text-blue-800">
-                                                        {getCurrentTimeInfo().message}
-                                                    </div>
+                                                <div>
+                                                    <p className="text-sm text-white/70">Scans Today</p>
+                                                    <p className="text-2xl font-bold text-green-600">{scanHistory.length}</p>
                                                 </div>
                                             </div>
-                                        </div>
+                                        </CardContent>
+                                    </Card>
 
-                                        {/* Scan History */}
-                                        <div className="lg:col-span-1">
-                                            <ScanHistory
-                                                scanHistory={scanHistory}
-                                                onClearHistory={clearScanHistory}
-                                            />
-                                        </div>
-                                    </div>
-                                )}
+                                    <Card className={`bg-white/10 backdrop-blur-md border border-white/20 ${getCardAnimationClass(2)} ${getCardDelayClass(2)}`}>
+                                        <CardContent className="p-6">
+                                            <div className="flex items-center space-x-4">
+                                                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                                    <QrCode className="h-6 w-6 text-blue-600" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm text-white/70">Scanner Status</p>
+                                                    <p className="text-2xl font-bold text-blue-600">{isScanning ? 'Active' : 'Ready'}</p>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
 
-                                {activeTab === "feed" && <PostFeed />}
-                                {activeTab === "moderation" && <PostModeration />}
-                                {activeTab === "reports" && <ReportsPanel />}
+                                    <Card className={`bg-white/10 backdrop-blur-md border border-white/20 ${getCardAnimationClass(3)} ${getCardDelayClass(3)}`}>
+                                        <CardContent className="p-6">
+                                            <div className="flex items-center space-x-4">
+                                                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                                                    <Clock className="h-6 w-6 text-purple-600" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm text-white/70">Current Time</p>
+                                                    <p className="text-2xl font-bold text-purple-600">{getCurrentTimeInfo().message}</p>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+
+                                {/* Main Scanner Area */}
+                                <Card className={`bg-white/10 backdrop-blur-md border border-white/20 ${getCardAnimationClass(4)} ${getCardDelayClass(4)}`}>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center text-white">
+                                            <QrCode className="h-5 w-5 mr-2 text-blue-600" />
+                                            QR Code Scanner
+                                        </CardTitle>
+                                        <CardDescription className="text-white/70">Scan student QR codes to record attendance</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="p-6">
+                                        <div className="text-center">
+                                            <button
+                                                onClick={startFullScreenScanning}
+                                                className="bg-white/20 backdrop-blur-md border border-white/30 text-white px-8 py-4 rounded-lg text-lg font-medium hover:bg-blue-500/30 transition-colors"
+                                            >
+                                                Start QR Scanner
+                                            </button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                {/* Scan History */}
+                                <Card className={`bg-white/10 backdrop-blur-md border border-white/20 ${getCardAnimationClass(5)} ${getCardDelayClass(5)}`}>
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center text-white">
+                                            <History className="h-5 w-5 mr-2 text-blue-600" />
+                                            Recent Scans
+                                        </CardTitle>
+                                        <CardDescription className="text-white/70">Latest QR code scans and attendance records</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <ScanHistory
+                                            scanHistory={scanHistory}
+                                            onClearHistory={clearScanHistory}
+                                        />
+                                    </CardContent>
+                                </Card>
                             </div>
-                        </main>
-                    </ScrollArea>
+                        )}
+
+                        {activeTab === "feed" && <PostsFeed user={user} />}
+                        {activeTab === "events" && <EventsManagement user={user} />}
+                        {activeTab === "scoring" && <EventsManagement user={user} />}
+                        {activeTab === "moderation" && <PostModeration />}
+                        {activeTab === "reports" && <ReportsPanel />}
+                    </div>
                 </div>
             </div>
 

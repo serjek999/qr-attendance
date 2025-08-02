@@ -6,7 +6,8 @@ import {
     Calendar,
     BarChart3,
     Users,
-    Plus
+    Plus,
+    Trophy
 } from 'lucide-react';
 
 const NavigationSidebar = ({ activeTab, setActiveTab }) => {
@@ -22,6 +23,18 @@ const NavigationSidebar = ({ activeTab, setActiveTab }) => {
             label: "Posts",
             icon: FileText,
             description: "View announcements and posts"
+        },
+        {
+            id: "events",
+            label: "Events",
+            icon: Calendar,
+            description: "Create and manage events"
+        },
+        {
+            id: "scoring",
+            label: "Tribe Scoring",
+            icon: Trophy,
+            description: "Manage tribe scores and rankings"
         },
         {
             id: "attendance",
@@ -54,23 +67,23 @@ const NavigationSidebar = ({ activeTab, setActiveTab }) => {
     return (
         <div className="space-y-6">
             {/* Navigation */}
-            <div className="bg-white rounded-lg shadow p-4">
-                <h3 className="font-semibold mb-4">Navigation</h3>
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-4">
+                <h3 className="font-semibold mb-4 text-white">Navigation</h3>
                 <div className="space-y-2">
                     {navigationItems.map((item) => (
                         <button
                             key={item.id}
                             onClick={() => setActiveTab(item.id)}
                             className={`w-full text-left px-3 py-3 rounded-lg transition-colors ${activeTab === item.id
-                                ? "bg-purple-100 text-purple-800 border border-purple-200"
-                                : "hover:bg-gray-100 text-gray-700"
+                                ? "bg-white/30 text-white backdrop-blur-md"
+                                : "hover:bg-white/10 text-white/70"
                                 }`}
                         >
                             <div className="flex items-center space-x-3">
                                 <item.icon className="h-5 w-5" />
                                 <div>
                                     <div className="font-medium">{item.label}</div>
-                                    <div className="text-xs text-gray-500">{item.description}</div>
+                                    <div className="text-xs text-white/50">{item.description}</div>
                                 </div>
                             </div>
                         </button>
@@ -78,38 +91,18 @@ const NavigationSidebar = ({ activeTab, setActiveTab }) => {
                 </div>
             </div>
 
-            {/* Quick Actions */}
-            <div className="bg-white rounded-lg shadow p-4">
-                <h3 className="font-semibold mb-4">Quick Actions</h3>
-                <div className="space-y-2">
-                    <button
-                        onClick={() => handleQuickAction('createPost')}
-                        className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2"
-                    >
-                        <Plus className="h-4 w-4" />
-                        <span>Create Post</span>
-                    </button>
 
-                    <button
-                        onClick={() => handleQuickAction('viewAttendance')}
-                        className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-2"
-                    >
-                        <Calendar className="h-4 w-4" />
-                        <span>View Attendance</span>
-                    </button>
-                </div>
-            </div>
 
             {/* Faculty Info */}
-            <div className="bg-white rounded-lg shadow p-4">
-                <h3 className="font-semibold mb-4">Faculty Info</h3>
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-4">
+                <h3 className="font-semibold mb-4 text-white">Faculty Info</h3>
                 <div className="space-y-3">
                     <div className="flex items-center space-x-2">
-                        <Users className="h-4 w-4 text-purple-600" />
-                        <span className="text-sm text-gray-600">Faculty Member</span>
+                        <Users className="h-4 w-4 text-white" />
+                        <span className="text-sm text-white/70">Faculty Member</span>
                     </div>
 
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-white/50">
                         Access to view posts, attendance records, and generate reports.
                     </div>
                 </div>

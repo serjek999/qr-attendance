@@ -99,9 +99,9 @@ const TribeStats = () => {
         return (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[...Array(4)].map((_, i) => (
-                    <div key={i} className="bg-white rounded-lg shadow p-6 animate-pulse">
-                        <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-                        <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+                    <div key={i} className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-6 animate-pulse">
+                        <div className="h-4 bg-white/20 rounded w-3/4 mb-4"></div>
+                        <div className="h-8 bg-white/20 rounded w-1/2"></div>
                     </div>
                 ))}
             </div>
@@ -112,52 +112,52 @@ const TribeStats = () => {
         <div className="space-y-6">
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white rounded-lg shadow p-6">
+                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-6">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm font-medium text-gray-600">Total Students</p>
-                            <p className="text-2xl font-bold text-gray-900">{stats.totalStudents.toLocaleString()}</p>
+                            <p className="text-sm font-medium text-white/70">Total Students</p>
+                            <p className="text-2xl font-bold text-white">{stats.totalStudents.toLocaleString()}</p>
                         </div>
-                        <div className="p-3 rounded-full bg-blue-500 bg-opacity-10">
-                            <Users className="h-6 w-6 text-blue-600" />
+                        <div className="p-3 rounded-full bg-blue-500 bg-opacity-20">
+                            <Users className="h-6 w-6 text-blue-400" />
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-white rounded-lg shadow p-6">
+                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-6">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm font-medium text-gray-600">Today's Attendance</p>
-                            <p className="text-2xl font-bold text-gray-900">{stats.todayAttendance.toLocaleString()}</p>
+                            <p className="text-sm font-medium text-white/70">Today&apos;s Attendance</p>
+                            <p className="text-2xl font-bold text-white">{stats.todayAttendance.toLocaleString()}</p>
                         </div>
-                        <div className="p-3 rounded-full bg-green-500 bg-opacity-10">
-                            <Calendar className="h-6 w-6 text-green-600" />
+                        <div className="p-3 rounded-full bg-green-500 bg-opacity-20">
+                            <Calendar className="h-6 w-6 text-green-400" />
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-white rounded-lg shadow p-6">
+                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-6">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm font-medium text-gray-600">Attendance Rate</p>
-                            <p className="text-2xl font-bold text-gray-900">{stats.attendanceRate}%</p>
+                            <p className="text-sm font-medium text-white/70">Attendance Rate</p>
+                            <p className="text-2xl font-bold text-white">{stats.attendanceRate}%</p>
                         </div>
-                        <div className="p-3 rounded-full bg-purple-500 bg-opacity-10">
-                            <TrendingUp className="h-6 w-6 text-purple-600" />
+                        <div className="p-3 rounded-full bg-purple-500 bg-opacity-20">
+                            <TrendingUp className="h-6 w-6 text-purple-400" />
                         </div>
                     </div>
                 </div>
 
-                <div className="bg-white rounded-lg shadow p-6">
+                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-6">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm font-medium text-gray-600">Top Tribe</p>
-                            <p className="text-lg font-bold text-gray-900">
+                            <p className="text-sm font-medium text-white/70">Top Tribe</p>
+                            <p className="text-lg font-bold text-white">
                                 {stats.topTribe ? stats.topTribe.name : 'N/A'}
                             </p>
                         </div>
-                        <div className="p-3 rounded-full bg-yellow-500 bg-opacity-10">
-                            <Award className="h-6 w-6 text-yellow-600" />
+                        <div className="p-3 rounded-full bg-yellow-500 bg-opacity-20">
+                            <Award className="h-6 w-6 text-yellow-400" />
                         </div>
                     </div>
                 </div>
@@ -165,39 +165,39 @@ const TribeStats = () => {
 
             {/* Top Tribe Details */}
             {stats.topTribe && (
-                <div className="bg-white rounded-lg shadow p-6">
+                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-6">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold">Top Performing Tribe</h3>
+                        <h3 className="text-lg font-semibold text-white">Top Performing Tribe</h3>
                         <div className="flex items-center space-x-2">
-                            <Award className="h-5 w-5 text-yellow-500" />
-                            <span className="text-sm text-gray-600">Best Attendance Today</span>
+                            <Award className="h-5 w-5 text-yellow-400" />
+                            <span className="text-sm text-white/70">Best Attendance Today</span>
                         </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="text-center">
-                            <div className="text-2xl font-bold text-gray-900">{stats.topTribe.name}</div>
-                            <div className="text-sm text-gray-600">Tribe Name</div>
+                            <div className="text-2xl font-bold text-white">{stats.topTribe.name}</div>
+                            <div className="text-sm text-white/70">Tribe Name</div>
                         </div>
 
                         <div className="text-center">
-                            <div className="text-2xl font-bold text-green-600">{stats.topTribe.rate}%</div>
-                            <div className="text-sm text-gray-600">Attendance Rate</div>
+                            <div className="text-2xl font-bold text-green-400">{stats.topTribe.rate}%</div>
+                            <div className="text-sm text-white/70">Attendance Rate</div>
                         </div>
 
                         <div className="text-center">
-                            <div className="text-2xl font-bold text-blue-600">
+                            <div className="text-2xl font-bold text-blue-400">
                                 {stats.topTribe.present}/{stats.topTribe.total}
                             </div>
-                            <div className="text-sm text-gray-600">Present/Total</div>
+                            <div className="text-sm text-white/70">Present/Total</div>
                         </div>
                     </div>
 
                     {/* Progress bar */}
                     <div className="mt-4">
-                        <div className="w-full bg-gray-200 rounded-full h-3">
+                        <div className="w-full bg-white/20 rounded-full h-3">
                             <div
-                                className="bg-green-500 h-3 rounded-full transition-all duration-300"
+                                className="bg-green-400 h-3 rounded-full transition-all duration-300"
                                 style={{ width: `${stats.topTribe.rate}%` }}
                             ></div>
                         </div>

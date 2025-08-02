@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 
-const Faculty = dynamic(() => import('../pages/Faculty.jsx'), {
+const Faculty = dynamic(() => import('./home/page.js'), {
     ssr: false,
     loading: () => <div>Loading...</div>
 });

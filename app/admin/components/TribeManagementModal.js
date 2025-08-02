@@ -151,18 +151,17 @@ const TribeManagementModal = ({ isOpen, onClose }) => {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b">
+                <div className="flex items-center justify-between p-6 border-b border-white/20">
                     <div className="flex items-center space-x-2">
-                        <Users className="h-5 w-5 text-blue-600" />
-                        <h2 className="text-xl font-semibold">Tribe Management</h2>
+                        <Users className="h-5 w-5 text-white" />
+                        <h2 className="text-xl font-semibold text-white">Tribe Management</h2>
                     </div>
                     <Button
-                        variant="ghost"
+                        className="bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20"
                         size="icon"
                         onClick={onClose}
-                        className="text-gray-500 hover:text-red-500"
                     >
                         <span className="sr-only">Close</span>
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">

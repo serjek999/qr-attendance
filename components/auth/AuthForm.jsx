@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { User, Lock, Eye, EyeOff, Shield, ArrowLeft, UserPlus, GraduationCap } from "lucide-react";
+import { User, Lock, Eye, EyeOff, ArrowLeft, UserPlus, GraduationCap } from "lucide-react";
+import { Logo } from "@/components/ui/logo";
 import Link from "next/link";
 import { authUtils } from "@/app/lib/auth";
 import { supabase } from "@/app/lib/supabaseClient";
@@ -67,46 +68,33 @@ const AuthForm = ({ onAuth }) => {
     setIsLoading(true);
 
     try {
-      // Determine user type based on username format
+      let result;
       let userType = 'student';
       let email = credentials.username;
-      
-      if (credentials.username.includes('@')) {
-        const [user, domain] = credentials.username.split('@');
-        
-        switch (domain) {
-          case 'admin':
-            userType = 'admin';
-            break;
-          case 'faculty':
-            userType = 'faculty';
-            break;
-          case 'sbo':
-            userType = 'sbo';
-            break;
-          default:
-            userType = 'student';
-        }
-      }
 
-      let result;
-
-      // Authenticate based on user type
-      switch (userType) {
-        case 'admin':
-          result = await authUtils.loginAdmin(email, credentials.password);
-          break;
-        case 'faculty':
-          result = await authUtils.loginFaculty(email, credentials.password);
-          break;
-        case 'sbo':
+      // Try to authenticate as different user types
+      // First, try as admin
+      result = await authUtils.loginAdmin(email, credentials.password);
+      if (result.success) {
+        userType = 'admin';
+      } else {
+        // Try as faculty
+        result = await authUtils.loginFaculty(email, credentials.password);
+        if (result.success) {
+          userType = 'faculty';
+        } else {
+          // Try as SBO officer
           result = await authUtils.loginSBO(email, credentials.password);
-          break;
-        case 'student':
-          result = await authUtils.loginStudent(credentials.username, credentials.password);
-          break;
-        default:
-          result = { success: false, message: 'Invalid user type' };
+          if (result.success) {
+            userType = 'sbo';
+          } else {
+            // Finally, try as student
+            result = await authUtils.loginStudent(credentials.username, credentials.password);
+            if (result.success) {
+              userType = 'student';
+            }
+          }
+        }
       }
 
       if (result.success) {
@@ -211,23 +199,23 @@ const AuthForm = ({ onAuth }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 py-8">
+    <div className="min-h-screen py-8" style={{ backgroundColor: '#13392F' }}>
       <div className="container mx-auto px-4">
-        <Link href="/" className="inline-flex items-center text-primary hover:text-primary/80 mb-6">
+        <Link href="/" className="inline-flex items-center text-white hover:text-white/80 mb-6">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Home
         </Link>
 
         <div className="w-full max-w-md mx-auto">
-          <Card variant="gradient" className="shadow-[var(--shadow-elegant)]">
+          <Card className="bg-white/10 backdrop-blur-md border border-white/20 shadow-lg">
             <CardHeader className="text-center">
               <div className="flex items-center justify-center mb-4">
-                <Shield className="h-12 w-12 text-primary" />
+                <Logo size="large" useImage={true} />
               </div>
-              <CardTitle className="text-2xl text-primary">
+              <CardTitle className="text-2xl text-white">
                 {isLoginMode ? "Login" : "Student Registration"}
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-white/70">
                 {isLoginMode 
                   ? "Enter your credentials to access the system"
                   : "Create your student account"
@@ -240,7 +228,7 @@ const AuthForm = ({ onAuth }) => {
                 <>
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="username" className="flex items-center">
+                      <Label htmlFor="username" className="flex items-center text-white">
                         <User className="h-4 w-4 mr-2" />
                         Username
                       </Label>
@@ -251,12 +239,12 @@ const AuthForm = ({ onAuth }) => {
                         value={credentials.username}
                         onChange={(e) => handleInputChange("username", e.target.value)}
                         required
-                        className="transition-all duration-300 focus:ring-2 focus:ring-primary/20"
+                        className="bg-white/10 backdrop-blur-md border border-white/20 text-white placeholder:text-white/50 transition-all duration-300 focus:ring-2 focus:ring-white/20"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="password" className="flex items-center">
+                      <Label htmlFor="password" className="flex items-center text-white">
                         <Lock className="h-4 w-4 mr-2" />
                         Password
                       </Label>
@@ -268,12 +256,12 @@ const AuthForm = ({ onAuth }) => {
                           value={credentials.password}
                           onChange={(e) => handleInputChange("password", e.target.value)}
                           required
-                          className="pr-10 transition-all duration-300 focus:ring-2 focus:ring-primary/20"
+                          className="pr-10 bg-white/10 backdrop-blur-md border border-white/20 text-white placeholder:text-white/50 transition-all duration-300 focus:ring-2 focus:ring-white/20"
                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/70 hover:text-white"
                         >
                           {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
@@ -282,31 +270,30 @@ const AuthForm = ({ onAuth }) => {
 
                     <Button 
                       type="submit" 
-                      className="w-full" 
+                      className="w-full bg-white/20 backdrop-blur-md border border-white/30 text-white hover:bg-white/30" 
                       disabled={isLoading}
                     >
                       {isLoading ? "Signing in..." : "Sign In"}
                     </Button>
                   </form>
 
-                  <div className="mt-6 p-4 bg-muted/30 rounded-lg">
-                    <p className="text-sm text-muted-foreground mb-2">Login Formats:</p>
-                    <div className="space-y-1 text-xs">
+                  <div className="mt-6 p-4 bg-white/20 backdrop-blur-md rounded-lg border border-white/30">
+                    <p className="text-sm text-white/70 mb-2">Login Formats:</p>
+                    <div className="space-y-1 text-xs text-white/50">
                       <p><strong>Students:</strong> School ID (e.g., 2023123456)</p>
-                      <p><strong>Staff:</strong> username@domain (e.g., jake@sbo)</p>
+                      <p><strong>Faculty/SBO/Admin:</strong> Email address (e.g., jake@example.com)</p>
                       <p><strong>Password:</strong> Check with your administrator</p>
                     </div>
                   </div>
 
                   <div className="mt-4 text-center">
-                    <p className="text-sm text-muted-foreground mb-2">
+                    <p className="text-sm text-white/70 mb-2">
                       Are you a student? Create your account below
                     </p>
                     <Button
                       type="button"
-                      variant="outline"
+                      className="w-full bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20"
                       onClick={() => setIsLoginMode(false)}
-                      className="w-full"
                     >
                       <UserPlus className="h-4 w-4 mr-2" />
                       Register as Student

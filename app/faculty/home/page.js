@@ -8,12 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
+import EventsManagement from '@/components/EventsManagement';
 import {
     GraduationCap,
     Trophy,
     Users,
     Calendar,
-    ArrowLeft,
     LogOut,
     Home,
     BarChart3,
@@ -230,15 +230,15 @@ const FacultyHome = () => {
     const NavigationContent = () => (
         <div className="space-y-6 overflow-y-auto max-h-screen">
             {/* User Profile Card */}
-            <Card>
+            <Card className="bg-white/10 backdrop-blur-md border border-white/20">
                 <CardContent className="p-6">
                     <div className="text-center">
                         <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-600 rounded-full flex items-center justify-center text-white font-bold text-xl mx-auto mb-4">
                             {user?.full_name?.split(' ').map(n => n[0]).join('') || 'F'}
                         </div>
-                        <h3 className="font-semibold text-lg">{user?.full_name || 'Faculty'}</h3>
-                        <p className="text-sm text-muted-foreground">Faculty Member</p>
-                        <Badge variant="secondary" className="mt-2">
+                        <h3 className="font-semibold text-lg text-white">{user?.full_name || 'Faculty'}</h3>
+                        <p className="text-sm text-white/70">Faculty Member</p>
+                        <Badge className="mt-2 bg-white/20 text-white">
                             <BookOpen className="h-3 w-3 mr-1" />
                             Academic Staff
                         </Badge>
@@ -246,56 +246,14 @@ const FacultyHome = () => {
                 </CardContent>
             </Card>
 
-            {/* Quick Actions */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-lg">Quick Actions</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                    <Button
-                        onClick={() => setActiveTab("reports")}
-                        className="w-full"
-                        variant="default"
-                    >
-                        <BarChart3 className="h-4 w-4 mr-2" />
-                        View Reports
-                    </Button>
-                    <Button
-                        onClick={() => {
-                            toast({
-                                title: "Report Generated",
-                                description: "Attendance report has been generated successfully."
-                            });
-                        }}
-                        variant="outline"
-                        className="w-full"
-                    >
-                        <FileText className="h-4 w-4 mr-2" />
-                        Generate Report
-                    </Button>
-                    <Button
-                        onClick={() => {
-                            toast({
-                                title: "Settings",
-                                description: "Settings panel will be available soon."
-                            });
-                        }}
-                        variant="outline"
-                        className="w-full"
-                    >
-                        <Settings className="h-4 w-4 mr-2" />
-                        Settings
-                    </Button>
-                </CardContent>
-            </Card>
+
 
             {/* Navigation */}
-            <Card>
+            <Card className="bg-white/10 backdrop-blur-md border border-white/20">
                 <CardContent className="p-4">
                     <nav className="space-y-2">
                         <Button
-                            variant={activeTab === "overview" ? "default" : "ghost"}
-                            className="w-full justify-start"
+                            className={`w-full justify-start ${activeTab === "overview" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
                             onClick={() => {
                                 setActiveTab("overview");
                                 setIsSheetOpen(false);
@@ -305,8 +263,7 @@ const FacultyHome = () => {
                             Overview
                         </Button>
                         <Button
-                            variant={activeTab === "feed" ? "default" : "ghost"}
-                            className="w-full justify-start"
+                            className={`w-full justify-start ${activeTab === "feed" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
                             onClick={() => {
                                 setActiveTab("feed");
                                 setIsSheetOpen(false);
@@ -316,8 +273,7 @@ const FacultyHome = () => {
                             Feed
                         </Button>
                         <Button
-                            variant={activeTab === "reports" ? "default" : "ghost"}
-                            className="w-full justify-start"
+                            className={`w-full justify-start ${activeTab === "reports" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
                             onClick={() => {
                                 setActiveTab("reports");
                                 setIsSheetOpen(false);
@@ -327,8 +283,7 @@ const FacultyHome = () => {
                             Reports
                         </Button>
                         <Button
-                            variant={activeTab === "leaderboard" ? "default" : "ghost"}
-                            className="w-full justify-start"
+                            className={`w-full justify-start ${activeTab === "leaderboard" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
                             onClick={() => {
                                 setActiveTab("leaderboard");
                                 setIsSheetOpen(false);
@@ -338,8 +293,7 @@ const FacultyHome = () => {
                             Leaderboard
                         </Button>
                         <Button
-                            variant={activeTab === "analytics" ? "default" : "ghost"}
-                            className="w-full justify-start"
+                            className={`w-full justify-start ${activeTab === "analytics" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
                             onClick={() => {
                                 setActiveTab("analytics");
                                 setIsSheetOpen(false);
@@ -348,27 +302,47 @@ const FacultyHome = () => {
                             <TrendingUp className="h-4 w-4 mr-2" />
                             Analytics
                         </Button>
+                        <Button
+                            className={`w-full justify-start ${activeTab === "events" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
+                            onClick={() => {
+                                setActiveTab("events");
+                                setIsSheetOpen(false);
+                            }}
+                        >
+                            <Calendar className="h-4 w-4 mr-2" />
+                            Events
+                        </Button>
+                        <Button
+                            className={`w-full justify-start ${activeTab === "scoring" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
+                            onClick={() => {
+                                setActiveTab("scoring");
+                                setIsSheetOpen(false);
+                            }}
+                        >
+                            <Trophy className="h-4 w-4 mr-2" />
+                            Tribe Scoring
+                        </Button>
                     </nav>
                 </CardContent>
             </Card>
 
             {/* Quick Stats */}
-            <Card>
+            <Card className="bg-white/10 backdrop-blur-md border border-white/20">
                 <CardHeader>
-                    <CardTitle className="text-lg">Today&apos;s Overview</CardTitle>
+                    <CardTitle className="text-lg text-white">Today&apos;s Overview</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Total Students</span>
-                        <span className="font-semibold text-blue-600">{stats.totalStudents}</span>
+                        <span className="text-sm text-white/70">Total Students</span>
+                        <span className="font-semibold text-blue-400">{stats.totalStudents}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Present Today</span>
-                        <span className="font-semibold text-green-600">{stats.presentToday}</span>
+                        <span className="text-sm text-white/70">Present Today</span>
+                        <span className="font-semibold text-green-400">{stats.presentToday}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Attendance Rate</span>
-                        <span className="font-semibold text-purple-600">{stats.attendanceRate}%</span>
+                        <span className="text-sm text-white/70">Attendance Rate</span>
+                        <span className="font-semibold text-purple-400">{stats.attendanceRate}%</span>
                     </div>
                 </CardContent>
             </Card>
@@ -415,28 +389,13 @@ const FacultyHome = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen" style={{ backgroundColor: '#13392F' }}>
             {/* Header */}
-            <div className="bg-white border-b sticky top-0 z-50">
+            <div className="bg-white/10 backdrop-blur-md border-b border-white/20 sticky top-0 z-50">
                 <div className="max-w-6xl mx-auto px-4">
                     <div className="flex items-center justify-between h-16">
                         <div className="flex items-center space-x-4">
-                            <Link href="/" className="text-primary hover:text-primary/80">
-                                <ArrowLeft className="h-5 w-5" />
-                            </Link>
-                            <div className="flex items-center space-x-2">
-                                <GraduationCap className="h-6 w-6 text-purple-600" />
-                                <span className="font-semibold text-lg">Faculty Portal</span>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center space-x-4">
-                            <div className="hidden sm:flex items-center space-x-2 bg-purple-50 px-3 py-1 rounded-full">
-                                <BookOpen className="h-4 w-4 text-purple-600" />
-                                <span className="text-sm font-medium text-purple-800">Faculty Member</span>
-                            </div>
-
-                            {/* Mobile Menu */}
+                            {/* Mobile Menu - Moved to left side */}
                             {isMobile && (
                                 <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                                     <SheetTrigger asChild>
@@ -455,6 +414,18 @@ const FacultyHome = () => {
                                 </Sheet>
                             )}
 
+                            <div className="flex items-center space-x-2">
+                                <GraduationCap className="h-6 w-6 text-white" />
+                                <span className="font-semibold text-lg text-white">Faculty Portal</span>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center space-x-4">
+                            <div className="hidden sm:flex items-center space-x-2 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full">
+                                <BookOpen className="h-4 w-4 text-white" />
+                                <span className="text-sm font-medium text-white">Faculty Member</span>
+                            </div>
+
                             <Button variant="ghost" size="sm" onClick={handleLogout}>
                                 <LogOut className="h-4 w-4" />
                             </Button>
@@ -468,7 +439,9 @@ const FacultyHome = () => {
                     {/* Left Sidebar - Desktop Only */}
                     {!isMobile && (
                         <div className="lg:col-span-1 sticky top-20 space-y-6">
-                            <NavigationContent />
+                            <div className="bg-white/10 backdrop-blur-md rounded-lg border border-white/20 p-6">
+                                <NavigationContent />
+                            </div>
                         </div>
                     )}
 
@@ -738,6 +711,9 @@ const FacultyHome = () => {
                                 </Card>
                             </div>
                         )}
+
+                        {activeTab === "events" && <EventsManagement user={user} />}
+                        {activeTab === "scoring" && <EventsManagement user={user} />}
                     </div>
                 </div>
             </div>

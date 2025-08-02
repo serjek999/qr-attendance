@@ -76,9 +76,9 @@ const StatsCards = () => {
         return (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[...Array(4)].map((_, i) => (
-                    <div key={i} className="bg-white rounded-lg shadow p-6 animate-pulse">
-                        <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
-                        <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+                    <div key={i} className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-6 animate-pulse">
+                        <div className="h-4 bg-white/20 rounded w-3/4 mb-4"></div>
+                        <div className="h-8 bg-white/20 rounded w-1/2"></div>
                     </div>
                 ))}
             </div>
@@ -88,14 +88,14 @@ const StatsCards = () => {
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {cards.map((card, index) => (
-                <div key={index} className="bg-white rounded-lg shadow p-6">
+                <div key={index} className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-6">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm font-medium text-gray-600">{card.title}</p>
-                            <p className="text-2xl font-bold text-gray-900">{card.value.toLocaleString()}</p>
+                            <p className="text-sm font-medium text-white/70">{card.title}</p>
+                            <p className="text-2xl font-bold text-white">{card.value.toLocaleString()}</p>
                         </div>
-                        <div className={`p-3 rounded-full ${card.color} bg-opacity-10`}>
-                            <card.icon className={`h-6 w-6 ${card.textColor}`} />
+                        <div className={`p-3 rounded-full ${card.color} bg-opacity-20`}>
+                            <card.icon className={`h-6 w-6 ${card.textColor.replace('600', '400')}`} />
                         </div>
                     </div>
                 </div>

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
+import { useCardAnimation } from '@/hooks/useCardAnimation';
 import {
     GraduationCap,
     Trophy,
@@ -17,7 +18,6 @@ import {
     Share2,
     Image,
     Smile,
-    ArrowLeft,
     LogOut,
     Home,
     BarChart3,
@@ -29,7 +29,8 @@ import {
     Clock,
     AlertCircle,
     Menu,
-    User
+    User,
+    X
 } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/app/lib/supabaseClient";
@@ -52,8 +53,14 @@ const StudentDashboard = () => {
     const [tribeInfo, setTribeInfo] = useState(null);
     const [isMobile, setIsMobile] = useState(false);
     const [isSheetOpen, setIsSheetOpen] = useState(false);
+    const [selectedImages, setSelectedImages] = useState([]);
+    const [uploading, setUploading] = useState(false);
     const { toast } = useToast();
     const qrRef = useRef(null);
+    const fileInputRef = useRef(null);
+
+    // Card animation hook - 4 main cards (QR code, attendance status, tribe info, posts feed)
+    const { getCardAnimationClass, getCardDelayClass } = useCardAnimation(4, 150);
 
     useEffect(() => {
         // Check if mobile
@@ -215,7 +222,8 @@ const StudentDashboard = () => {
                 return {
                     ...post,
                     authorName,
-                    authorType
+                    authorType,
+                    images: post.images || []
                 };
             });
 
@@ -267,6 +275,102 @@ const StudentDashboard = () => {
         window.location.href = '/auth';
     };
 
+    const handleImageSelect = (event) => {
+        const files = Array.from(event.target.files);
+
+        if (selectedImages.length + files.length > 3) {
+            toast({
+                title: "Too Many Images",
+                description: "You can only upload up to 3 images per post",
+                variant: "destructive"
+            });
+            return;
+        }
+
+        const validFiles = files.filter(file => {
+            // Define accepted image types - support ALL image formats
+            const acceptedTypes = [
+                'image/jpeg',
+                'image/jpg',
+                'image/png',
+                'image/gif',
+                'image/webp',
+                'image/bmp',
+                'image/tiff',
+                'image/tif',
+                'image/svg+xml',
+                'image/avif',
+                'image/heic',
+                'image/heif',
+                'image/ico',
+                'image/cur',
+                'image/apng',
+                'image/jfif',
+                'image/pjpeg',
+                'image/pjp'
+            ];
+
+            if (!acceptedTypes.includes(file.type)) {
+                toast({
+                    title: "Invalid File Type",
+                    description: `${file.name} is not a valid image file. Please select an image file.`,
+                    variant: "destructive"
+                });
+                return false;
+            }
+            if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                toast({
+                    title: "File Too Large",
+                    description: `${file.name} is larger than 5MB. Please choose a smaller image.`,
+                    variant: "destructive"
+                });
+                return false;
+            }
+            return true;
+        });
+
+        setSelectedImages(prev => [...prev, ...validFiles]);
+    };
+
+    const removeImage = (index) => {
+        setSelectedImages(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const uploadImages = async () => {
+        if (selectedImages.length === 0) return [];
+
+        const uploadedUrls = [];
+        setUploading(true);
+
+        try {
+            for (const image of selectedImages) {
+                const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}-${image.name}`;
+                const { data, error } = await supabase.storage
+                    .from('post-images')
+                    .upload(fileName, image);
+
+                if (error) throw error;
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('post-images')
+                    .getPublicUrl(fileName);
+
+                uploadedUrls.push(publicUrl);
+            }
+        } catch (error) {
+            console.error('Error uploading images:', error);
+            toast({
+                title: "Upload Error",
+                description: "Failed to upload images",
+                variant: "destructive"
+            });
+        } finally {
+            setUploading(false);
+        }
+
+        return uploadedUrls;
+    };
+
     const handleLike = async (postId) => {
         try {
             // Check if user already liked this post
@@ -279,6 +383,14 @@ const StudentDashboard = () => {
 
             if (checkError && checkError.code !== 'PGRST116') {
                 console.error('Error checking like:', checkError);
+                // If there's an RLS error, show a helpful message
+                if (checkError.message && checkError.message.includes('row-level security')) {
+                    toast({
+                        title: "Database Update Required",
+                        description: "The like feature requires a database update. Please contact your administrator.",
+                        variant: "destructive"
+                    });
+                }
                 return;
             }
 
@@ -292,6 +404,13 @@ const StudentDashboard = () => {
 
                 if (unlikeError) {
                     console.error('Error unliking post:', unlikeError);
+                    if (unlikeError.message && unlikeError.message.includes('row-level security')) {
+                        toast({
+                            title: "Database Update Required",
+                            description: "The like feature requires a database update. Please contact your administrator.",
+                            variant: "destructive"
+                        });
+                    }
                     return;
                 }
 
@@ -317,6 +436,19 @@ const StudentDashboard = () => {
 
                 if (likeError) {
                     console.error('Error liking post:', likeError);
+                    if (likeError.message && likeError.message.includes('row-level security')) {
+                        toast({
+                            title: "Database Update Required",
+                            description: "The like feature requires a database update. Please contact your administrator.",
+                            variant: "destructive"
+                        });
+                    } else {
+                        toast({
+                            title: "Error",
+                            description: "Failed to like post. Please try again.",
+                            variant: "destructive"
+                        });
+                    }
                     return;
                 }
 
@@ -343,25 +475,36 @@ const StudentDashboard = () => {
     };
 
     const handleNewPost = async () => {
-        if (!newPost.trim()) {
+        if (!newPost.trim() && selectedImages.length === 0) {
             toast({
                 title: "Error",
-                description: "Please enter some content for your post",
+                description: "Please enter some content or add images for your post",
                 variant: "destructive"
             });
             return;
         }
 
         try {
-            const { data: postData, error: postError } = await supabase
+            setUploading(true);
+            const imageUrls = await uploadImages();
+
+            // Prepare post data
+            const postData = {
+                content: newPost,
+                author_id: user.id,
+                author_type: 'student',
+                tribe_id: user.tribe_id,
+                approved: false
+            };
+
+            // Only add images if the column exists (will be handled by migration)
+            if (imageUrls.length > 0) {
+                postData.images = imageUrls;
+            }
+
+            const { data: postDataResult, error: postError } = await supabase
                 .from('posts')
-                .insert({
-                    content: newPost,
-                    author_id: user.id,
-                    author_type: 'student',
-                    tribe_id: user.tribe_id,
-                    approved: false
-                })
+                .insert(postData)
                 .select()
                 .single();
 
@@ -376,6 +519,7 @@ const StudentDashboard = () => {
             }
 
             setNewPost("");
+            setSelectedImages([]);
             toast({
                 title: "Post Created",
                 description: "Your post has been submitted for approval",
@@ -390,6 +534,8 @@ const StudentDashboard = () => {
                 description: "Failed to create post",
                 variant: "destructive"
             });
+        } finally {
+            setUploading(false);
         }
     };
 
@@ -433,17 +579,17 @@ const StudentDashboard = () => {
     };
 
     const NavigationContent = () => (
-        <div className="space-y-6 overflow-y-auto max-h-screen">
+        <div className="space-y-6">
             {/* User Profile Card */}
-            <Card>
+            <Card className={`bg-white/10 backdrop-blur-md border border-white/20 ${getCardAnimationClass(0)} ${getCardDelayClass(0)}`}>
                 <CardContent className="p-6">
                     <div className="text-center">
                         <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xl mx-auto mb-4">
                             {user?.full_name?.split(' ').map(n => n[0]).join('') || 'S'}
                         </div>
-                        <h3 className="font-semibold text-lg">{user?.full_name || 'Student'}</h3>
-                        <p className="text-sm text-muted-foreground">Student</p>
-                        <Badge variant="secondary" className="mt-2">
+                        <h3 className="font-semibold text-lg text-white">{user?.full_name || 'Student'}</h3>
+                        <p className="text-sm text-white/70">Student</p>
+                        <Badge className="mt-2 bg-white/20 text-white">
                             <Shield className="h-3 w-3 mr-1" />
                             {tribeInfo?.name || 'No Tribe'}
                         </Badge>
@@ -452,12 +598,11 @@ const StudentDashboard = () => {
             </Card>
 
             {/* Navigation */}
-            <Card>
+            <Card className={`bg-white/10 backdrop-blur-md border border-white/20 ${getCardAnimationClass(1)} ${getCardDelayClass(1)}`}>
                 <CardContent className="p-4">
                     <nav className="space-y-2">
                         <Button
-                            variant={activeTab === "feed" ? "default" : "ghost"}
-                            className="w-full justify-start"
+                            className={`w-full justify-start ${activeTab === "feed" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
                             onClick={() => {
                                 setActiveTab("feed");
                                 setIsSheetOpen(false);
@@ -467,8 +612,7 @@ const StudentDashboard = () => {
                             Home Feed
                         </Button>
                         <Button
-                            variant={activeTab === "leaderboard" ? "default" : "ghost"}
-                            className="w-full justify-start"
+                            className={`w-full justify-start ${activeTab === "leaderboard" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
                             onClick={() => {
                                 setActiveTab("leaderboard");
                                 setIsSheetOpen(false);
@@ -478,8 +622,7 @@ const StudentDashboard = () => {
                             Leaderboard
                         </Button>
                         <Button
-                            variant={activeTab === "tribe" ? "default" : "ghost"}
-                            className="w-full justify-start"
+                            className={`w-full justify-start ${activeTab === "tribe" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
                             onClick={() => {
                                 setActiveTab("tribe");
                                 setIsSheetOpen(false);
@@ -489,8 +632,7 @@ const StudentDashboard = () => {
                             My Tribe
                         </Button>
                         <Button
-                            variant={activeTab === "events" ? "default" : "ghost"}
-                            className="w-full justify-start"
+                            className={`w-full justify-start ${activeTab === "events" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
                             onClick={() => {
                                 setActiveTab("events");
                                 setIsSheetOpen(false);
@@ -504,38 +646,38 @@ const StudentDashboard = () => {
             </Card>
 
             {/* Quick Stats */}
-            <Card>
+            <Card className={`bg-white/10 backdrop-blur-md border border-white/20 ${getCardAnimationClass(2)} ${getCardDelayClass(2)}`}>
                 <CardHeader>
-                    <CardTitle className="text-lg">Quick Stats</CardTitle>
+                    <CardTitle className="text-lg text-white">Quick Stats</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Attendance Rate</span>
-                        <span className="font-semibold text-green-600">
+                        <span className="text-sm text-white/70">Attendance Rate</span>
+                        <span className="font-semibold text-green-400">
                             {attendanceStatus.totalDays > 0
                                 ? Math.round((attendanceStatus.streak / attendanceStatus.totalDays) * 100)
                                 : 0}%
                         </span>
                     </div>
                     <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Tribe Rank</span>
-                        <span className="font-semibold text-blue-600">#{tribeInfo?.name || 'N/A'}</span>
+                        <span className="text-sm text-white/70">Tribe Rank</span>
+                        <span className="font-semibold text-blue-400">#{tribeInfo?.name || 'N/A'}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Points Earned</span>
-                        <span className="font-semibold text-purple-600">{attendanceStatus.totalDays * 10}</span>
+                        <span className="text-sm text-white/70">Points Earned</span>
+                        <span className="font-semibold text-purple-400">{attendanceStatus.totalDays * 10}</span>
                     </div>
                     <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Streak</span>
-                        <span className="font-semibold text-orange-600">{attendanceStatus.streak} days</span>
+                        <span className="text-sm text-white/70">Streak</span>
+                        <span className="font-semibold text-orange-400">{attendanceStatus.streak} days</span>
                     </div>
                 </CardContent>
             </Card>
 
             {/* Attendance Status */}
-            <Card>
+            <Card className="bg-white/10 backdrop-blur-md border border-white/20">
                 <CardHeader>
-                    <CardTitle className="text-lg">Today's Attendance</CardTitle>
+                    <CardTitle className="text-lg text-white">Today&apos;s Attendance</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="flex items-center space-x-3">
@@ -598,28 +740,13 @@ const StudentDashboard = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen" style={{ backgroundColor: '#13392F' }}>
             {/* Header */}
-            <div className="bg-white border-b sticky top-0 z-50">
+            <div className="bg-white/10 backdrop-blur-md border-b border-white/20 sticky top-0 z-50">
                 <div className="max-w-6xl mx-auto px-4">
                     <div className="flex items-center justify-between h-16">
                         <div className="flex items-center space-x-4">
-                            <Link href="/" className="text-primary hover:text-primary/80">
-                                <ArrowLeft className="h-5 w-5" />
-                            </Link>
-                            <div className="flex items-center space-x-2">
-                                <GraduationCap className="h-6 w-6 text-primary" />
-                                <span className="font-semibold text-lg">Student Portal</span>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center space-x-4">
-                            <div className="hidden sm:flex items-center space-x-2 bg-blue-50 px-3 py-1 rounded-full">
-                                <Shield className="h-4 w-4 text-blue-600" />
-                                <span className="text-sm font-medium text-blue-800">{tribeInfo?.name || 'No Tribe'}</span>
-                            </div>
-
-                            {/* Mobile Menu */}
+                            {/* Mobile Menu - Moved to left side */}
                             {isMobile && (
                                 <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
                                     <SheetTrigger asChild>
@@ -637,6 +764,18 @@ const StudentDashboard = () => {
                                     </SheetContent>
                                 </Sheet>
                             )}
+
+                            <div className="flex items-center space-x-2">
+                                <GraduationCap className="h-6 w-6 text-white" />
+                                <span className="font-semibold text-lg text-white">Student Portal</span>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center space-x-4">
+                            <div className="hidden sm:flex items-center space-x-2 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full">
+                                <Shield className="h-4 w-4 text-white" />
+                                <span className="text-sm font-medium text-white">{tribeInfo?.name || 'No Tribe'}</span>
+                            </div>
 
                             <Button variant="ghost" size="sm" onClick={handleLogout}>
                                 <LogOut className="h-4 w-4" />
@@ -660,7 +799,7 @@ const StudentDashboard = () => {
                         {activeTab === "feed" && (
                             <>
                                 {/* Create Post */}
-                                <Card>
+                                <Card className={`bg-white/10 backdrop-blur-md border border-white/20 ${getCardAnimationClass(3)} ${getCardDelayClass(3)}`}>
                                     <CardContent className="p-6">
                                         <div className="flex space-x-4">
                                             <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
@@ -671,25 +810,63 @@ const StudentDashboard = () => {
                                                     placeholder="What's on your mind?"
                                                     value={newPost}
                                                     onChange={(e) => setNewPost(e.target.value)}
-                                                    className="mb-3"
+                                                    className="mb-3 bg-white/10 backdrop-blur-md border border-white/20 text-white placeholder:text-white/50"
                                                 />
+
+                                                {/* Image Preview */}
+                                                {selectedImages.length > 0 && (
+                                                    <div className="mb-3">
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {selectedImages.map((image, index) => (
+                                                                <div key={index} className="relative group">
+                                                                    <img
+                                                                        src={URL.createObjectURL(image)}
+                                                                        alt={`Preview ${index + 1}`}
+                                                                        className="w-20 h-20 object-cover rounded-lg border-2 border-gray-200 hover:border-blue-300 transition-colors"
+                                                                    />
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => removeImage(index)}
+                                                                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors"
+                                                                    >
+                                                                        <X className="h-3 w-3" />
+                                                                    </button>
+                                                                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all rounded-lg flex items-center justify-center">
+                                                                        <span className="text-white text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                            {image.name.length > 15 ? image.name.substring(0, 15) + '...' : image.name}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                        <p className="text-sm text-white/50 mt-1">
+                                                            {selectedImages.length}/3 images selected • {selectedImages.reduce((total, img) => total + img.size, 0).toFixed(1)} MB total
+                                                        </p>
+                                                    </div>
+                                                )}
+
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex space-x-2">
                                                         <Button
-                                                            variant="ghost"
+                                                            type="button"
+                                                            className="bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20"
                                                             size="sm"
-                                                            onClick={() => {
-                                                                toast({
-                                                                    title: "Photo Upload",
-                                                                    description: "Photo upload feature will be available soon."
-                                                                });
-                                                            }}
+                                                            onClick={() => fileInputRef.current?.click()}
+                                                            disabled={selectedImages.length >= 3}
                                                         >
                                                             <Image className="h-4 w-4 mr-1" />
-                                                            Photo
+                                                            Photo ({selectedImages.length}/3)
                                                         </Button>
+                                                        <input
+                                                            ref={fileInputRef}
+                                                            type="file"
+                                                            multiple
+                                                            accept="image/*"
+                                                            onChange={handleImageSelect}
+                                                            className="hidden"
+                                                        />
                                                         <Button
-                                                            variant="ghost"
+                                                            className="bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20"
                                                             size="sm"
                                                             onClick={() => {
                                                                 toast({
@@ -702,8 +879,12 @@ const StudentDashboard = () => {
                                                             Emoji
                                                         </Button>
                                                     </div>
-                                                    <Button onClick={handleNewPost} disabled={!newPost.trim()}>
-                                                        Post
+                                                    <Button
+                                                        onClick={handleNewPost}
+                                                        disabled={(!newPost.trim() && selectedImages.length === 0) || uploading}
+                                                        className="bg-white/20 backdrop-blur-md border border-white/30 text-white hover:bg-white/30"
+                                                    >
+                                                        {uploading ? 'Posting...' : 'Post'}
                                                     </Button>
                                                 </div>
                                             </div>
@@ -714,36 +895,68 @@ const StudentDashboard = () => {
                                 {/* Posts Feed */}
                                 <div className="space-y-4">
                                     {posts.map((post) => (
-                                        <Card key={post.id}>
+                                        <Card key={post.id} className="bg-white/10 backdrop-blur-md border border-white/20">
                                             <CardHeader>
                                                 <div className="flex items-center space-x-3">
                                                     <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
                                                         {post.authorName?.split(' ').map(n => n[0]).join('') || 'U'}
                                                     </div>
                                                     <div>
-                                                        <p className="font-semibold">{post.authorName}</p>
-                                                        <p className="text-sm text-muted-foreground">
+                                                        <p className="font-semibold text-white">{post.authorName}</p>
+                                                        <p className="text-sm text-white/70">
                                                             {new Date(post.created_at).toLocaleDateString()} • {post.authorType}
                                                         </p>
                                                     </div>
                                                 </div>
                                             </CardHeader>
                                             <CardContent>
-                                                <p className="text-gray-800 mb-4">{post.content}</p>
+                                                <p className="text-white mb-4">{post.content}</p>
+
+                                                {/* Post Images */}
+                                                {post.images && post.images.length > 0 && (
+                                                    <div className="mb-4">
+                                                        <div className={`grid gap-2 ${post.images.length === 1 ? 'grid-cols-1' :
+                                                            post.images.length === 2 ? 'grid-cols-2' :
+                                                                'grid-cols-3'
+                                                            }`}>
+                                                            {post.images.map((imageUrl, index) => (
+                                                                <div key={index} className="relative group">
+                                                                    <img
+                                                                        src={imageUrl}
+                                                                        alt={`Post image ${index + 1}`}
+                                                                        className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                                                                        onError={(e) => {
+                                                                            e.target.style.display = 'none';
+                                                                            e.target.nextSibling.style.display = 'flex';
+                                                                        }}
+                                                                        loading="lazy"
+                                                                    />
+                                                                    <div
+                                                                        className="hidden w-full h-32 bg-gray-200 rounded-lg items-center justify-center text-gray-500 text-sm"
+                                                                        style={{ display: 'none' }}
+                                                                    >
+                                                                        <span>Image not available</span>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
                                                 <div className="flex items-center space-x-4">
                                                     <Button
-                                                        variant="ghost"
+                                                        className="bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20"
                                                         size="sm"
                                                         onClick={() => handleLike(post.id)}
                                                     >
                                                         <Heart className="h-4 w-4 mr-1" />
                                                         {post.likes_count || 0}
                                                     </Button>
-                                                    <Button variant="ghost" size="sm">
+                                                    <Button className="bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20" size="sm">
                                                         <MessageCircle className="h-4 w-4 mr-1" />
                                                         Comment
                                                     </Button>
-                                                    <Button variant="ghost" size="sm">
+                                                    <Button className="bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20" size="sm">
                                                         <Share2 className="h-4 w-4 mr-1" />
                                                         Share
                                                     </Button>
@@ -756,113 +969,113 @@ const StudentDashboard = () => {
                         )}
 
                         {activeTab === "leaderboard" && (
-                            <Card>
+                            <Card className="bg-white/10 backdrop-blur-md border border-white/20">
                                 <CardHeader>
-                                    <CardTitle className="flex items-center space-x-2">
-                                        <Trophy className="h-6 w-6 text-yellow-500" />
+                                    <CardTitle className="flex items-center space-x-2 text-white">
+                                        <Trophy className="h-6 w-6 text-yellow-400" />
                                         <span>Leaderboard</span>
                                     </CardTitle>
-                                    <CardDescription>Top performing students and tribes</CardDescription>
+                                    <CardDescription className="text-white/70">Top performing students and tribes</CardDescription>
                                 </CardHeader>
                                 <CardContent>
-                                    <p className="text-muted-foreground">Leaderboard feature will be implemented soon.</p>
+                                    <p className="text-white/70">Leaderboard feature will be implemented soon.</p>
                                 </CardContent>
                             </Card>
                         )}
 
                         {activeTab === "tribe" && (
-                            <Card>
+                            <Card className="bg-white/10 backdrop-blur-md border border-white/20">
                                 <CardHeader>
-                                    <CardTitle className="flex items-center space-x-2">
-                                        <Shield className="h-6 w-6 text-blue-500" />
+                                    <CardTitle className="flex items-center space-x-2 text-white">
+                                        <Shield className="h-6 w-6 text-blue-400" />
                                         <span>My Tribe</span>
                                     </CardTitle>
-                                    <CardDescription>Your tribe's activities and attendance information</CardDescription>
+                                    <CardDescription className="text-white/70">Your tribe&apos;s activities and attendance information</CardDescription>
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-6">
                                         {/* Tribe Info */}
-                                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                            <h4 className="font-semibold text-blue-900 mb-3">Tribe Information</h4>
+                                        <div className="bg-white/20 backdrop-blur-md border border-white/30 rounded-lg p-4">
+                                            <h4 className="font-semibold text-white mb-3">Tribe Information</h4>
                                             <div className="grid grid-cols-2 gap-4 text-sm">
                                                 <div>
-                                                    <span className="text-blue-700">Name:</span>
-                                                    <p className="font-semibold text-blue-900">{tribeInfo?.name || 'No Tribe'}</p>
+                                                    <span className="text-white/70">Name:</span>
+                                                    <p className="font-semibold text-white">{tribeInfo?.name || 'No Tribe'}</p>
                                                 </div>
                                                 <div>
-                                                    <span className="text-blue-700">Members:</span>
-                                                    <p className="font-semibold text-blue-900">Loading...</p>
+                                                    <span className="text-white/70">Members:</span>
+                                                    <p className="font-semibold text-white">Loading...</p>
                                                 </div>
                                                 <div>
-                                                    <span className="text-blue-700">Attendance Rate:</span>
-                                                    <p className="font-semibold text-blue-900">
+                                                    <span className="text-white/70">Attendance Rate:</span>
+                                                    <p className="font-semibold text-white">
                                                         {attendanceStatus.totalDays > 0
                                                             ? Math.round((attendanceStatus.streak / attendanceStatus.totalDays) * 100)
                                                             : 0}%
                                                     </p>
                                                 </div>
                                                 <div>
-                                                    <span className="text-blue-700">Total Points:</span>
-                                                    <p className="font-semibold text-blue-900">{attendanceStatus.totalDays * 10}</p>
+                                                    <span className="text-white/70">Total Points:</span>
+                                                    <p className="font-semibold text-white">{attendanceStatus.totalDays * 10}</p>
                                                 </div>
                                             </div>
                                         </div>
 
                                         {/* Your Attendance Status */}
-                                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                                            <h4 className="font-semibold text-green-900 mb-3">Your Attendance</h4>
+                                        <div className="bg-white/20 backdrop-blur-md border border-white/30 rounded-lg p-4">
+                                            <h4 className="font-semibold text-white mb-3">Your Attendance</h4>
                                             <div className="flex items-center space-x-3">
                                                 {getAttendanceStatusIcon(attendanceStatus.today)}
-                                                <span className={`font-semibold ${getAttendanceStatusColor(attendanceStatus.today)}`}>
+                                                <span className={`font-semibold text-white`}>
                                                     {getAttendanceStatusText(attendanceStatus.today)}
                                                 </span>
                                             </div>
                                             <div className="mt-3 space-y-2 text-sm">
                                                 <div className="flex justify-between">
-                                                    <span className="text-green-700">Current Streak:</span>
-                                                    <span className="font-semibold text-green-900">{attendanceStatus.streak} days</span>
+                                                    <span className="text-white/70">Current Streak:</span>
+                                                    <span className="font-semibold text-white">{attendanceStatus.streak} days</span>
                                                 </div>
                                                 <div className="flex justify-between">
-                                                    <span className="text-green-700">Total Days:</span>
-                                                    <span className="font-semibold text-green-900">{attendanceStatus.totalDays}</span>
+                                                    <span className="text-white/70">Total Days:</span>
+                                                    <span className="font-semibold text-white">{attendanceStatus.totalDays}</span>
                                                 </div>
                                             </div>
                                         </div>
 
                                         {/* QR Code Section */}
-                                        <div className="bg-white border border-gray-200 rounded-lg p-4">
-                                            <h4 className="font-semibold text-gray-900 mb-3">Your Attendance QR Code</h4>
+                                        <div className="bg-white/20 backdrop-blur-md border border-white/30 rounded-lg p-4">
+                                            <h4 className="font-semibold text-white mb-3">Your Attendance QR Code</h4>
                                             <div className="text-center">
                                                 {qrCodeUrl ? (
                                                     <div className="space-y-3">
                                                         <img
                                                             src={qrCodeUrl}
                                                             alt="Student QR Code"
-                                                            className="w-32 h-32 mx-auto border-2 border-primary/20 rounded-lg shadow-md"
+                                                            className="w-32 h-32 mx-auto border-2 border-white/30 rounded-lg shadow-md"
                                                         />
-                                                        <p className="text-sm text-gray-600">
+                                                        <p className="text-sm text-white/70">
                                                             Show this QR code to SBO officers for attendance tracking
                                                         </p>
-                                                        <Button onClick={downloadQR} size="sm">
+                                                        <Button onClick={downloadQR} size="sm" className="bg-white/20 backdrop-blur-md border border-white/30 text-white hover:bg-white/30">
                                                             <Download className="h-4 w-4 mr-2" />
                                                             Download QR Code
                                                         </Button>
                                                     </div>
                                                 ) : (
-                                                    <div className="w-32 h-32 mx-auto bg-gray-100 rounded-lg flex items-center justify-center">
-                                                        <QrCode className="h-8 w-8 text-gray-400" />
+                                                    <div className="w-32 h-32 mx-auto bg-white/10 rounded-lg flex items-center justify-center">
+                                                        <QrCode className="h-8 w-8 text-white/50" />
                                                     </div>
                                                 )}
                                             </div>
                                         </div>
 
                                         {/* Attendance Guidelines */}
-                                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                                            <h4 className="font-semibold text-yellow-900 mb-2">Attendance Guidelines:</h4>
-                                            <ul className="text-sm text-yellow-800 space-y-1">
+                                        <div className="bg-white/20 backdrop-blur-md border border-white/30 rounded-lg p-4">
+                                            <h4 className="font-semibold text-white mb-2">Attendance Guidelines:</h4>
+                                            <ul className="text-sm text-white/70 space-y-1">
                                                 <li>• Time-in is allowed from 7:00 AM to 12:00 PM</li>
                                                 <li>• Time-out is allowed from 1:00 PM to 5:00 PM</li>
-                                                <li>• Regular attendance contributes to your tribe's score</li>
+                                                <li>• Regular attendance contributes to your tribe&apos;s score</li>
                                                 <li>• Keep your QR code accessible on your phone</li>
                                                 <li>• Contact SBO if you encounter any issues</li>
                                             </ul>
@@ -873,13 +1086,13 @@ const StudentDashboard = () => {
                         )}
 
                         {activeTab === "events" && (
-                            <Card>
+                            <Card className="bg-white/10 backdrop-blur-md border border-white/20">
                                 <CardHeader>
-                                    <CardTitle className="flex items-center space-x-2">
-                                        <Calendar className="h-6 w-6 text-purple-500" />
+                                    <CardTitle className="flex items-center space-x-2 text-white">
+                                        <Calendar className="h-6 w-6 text-purple-400" />
                                         <span>Events</span>
                                     </CardTitle>
-                                    <CardDescription>School and tribe events with attendance tracking</CardDescription>
+                                    <CardDescription className="text-white/70">School and tribe events with attendance tracking</CardDescription>
                                 </CardHeader>
                                 <CardContent>
                                     <div className="space-y-4">

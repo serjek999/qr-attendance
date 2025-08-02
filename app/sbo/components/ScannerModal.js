@@ -17,21 +17,20 @@ const ScannerModal = ({
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between p-6 border-b border-white/20">
                     <div className="flex items-center gap-3">
-                        <QrCode className="h-6 w-6 text-primary" />
+                        <QrCode className="h-6 w-6 text-white" />
                         <div>
-                            <h2 className="text-xl font-bold text-gray-900">Advanced QR Scanner</h2>
-                            <p className="text-sm text-gray-600">Scan student QR codes for attendance</p>
+                            <h2 className="text-xl font-bold text-white">Advanced QR Scanner</h2>
+                            <p className="text-sm text-white/70">Scan student QR codes for attendance</p>
                         </div>
                     </div>
                     <Button
-                        variant="ghost"
+                        className="bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20"
                         size="sm"
                         onClick={onClose}
-                        className="text-gray-500 hover:text-gray-700"
                     >
                         <X className="h-5 w-5" />
                     </Button>
@@ -40,13 +39,13 @@ const ScannerModal = ({
                 {/* Scanner Content */}
                 <div className="p-6">
                     {/* Time Status */}
-                    <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                        <h3 className="font-semibold text-blue-900 mb-2">Current Time Status:</h3>
-                        <div className="text-blue-800">
+                    <div className="mb-6 p-4 bg-white/20 backdrop-blur-md border border-white/30 rounded-lg">
+                        <h3 className="font-semibold text-white mb-2">Current Time Status:</h3>
+                        <div className="text-white/90">
                             {timeInfo.message}
                         </div>
                         {!timeInfo.canScan && (
-                            <div className="mt-2 text-red-600 text-sm">
+                            <div className="mt-2 text-red-400 text-sm">
                                 ⚠️ Attendance recording is only allowed during specified time windows.
                             </div>
                         )}
@@ -57,18 +56,18 @@ const ScannerModal = ({
                         {!isScanning ? (
                             <div className="text-center py-12">
                                 <div className="mb-6">
-                                    <Camera className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                                    <Camera className="h-16 w-16 text-white/50 mx-auto mb-4" />
+                                    <h3 className="text-lg font-semibold text-white mb-2">
                                         Ready to Scan
                                     </h3>
-                                    <p className="text-gray-600">
+                                    <p className="text-white/70">
                                         Click the button below to start the QR scanner
                                     </p>
                                 </div>
                                 <Button
                                     onClick={onStartScanning}
                                     size="lg"
-                                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                                    className="bg-white/20 backdrop-blur-md border border-white/30 text-white hover:bg-white/30"
                                 >
                                     <QrCode className="h-5 w-5 mr-2" />
                                     Start Scanner
@@ -77,9 +76,9 @@ const ScannerModal = ({
                         ) : (
                             <div className="space-y-4">
                                 {/* Scanner Status */}
-                                <div className="flex items-center justify-center gap-2 bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                                    <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
-                                    <span className="text-yellow-800 font-medium">Scanner Active</span>
+                                <div className="flex items-center justify-center gap-2 bg-white/20 backdrop-blur-md border border-white/30 rounded-lg p-3">
+                                    <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse"></div>
+                                    <span className="text-white font-medium">Scanner Active</span>
                                 </div>
 
                                 {/* QR Scanner Container */}

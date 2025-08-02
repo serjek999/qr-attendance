@@ -195,9 +195,9 @@ const PostsFeed = ({ user }) => {
                 .from('posts')
                 .insert({
                     content: newPost,
-                    admin_id: user.id,
-                    author_type: 'admin',
-                    approved: true, // Admins can post directly without approval
+                    sbo_officer_id: user.id,
+                    author_type: 'sbo_officer',
+                    approved: true, // SBO officers can post directly without approval
                     images: imageUrls
                 })
                 .select()
@@ -233,7 +233,7 @@ const PostsFeed = ({ user }) => {
                 .from('post_likes')
                 .select('*')
                 .eq('post_id', postId)
-                .eq('admin_id', user.id)
+                .eq('sbo_officer_id', user.id)
                 .single();
 
             if (checkError && checkError.code !== 'PGRST116') throw checkError;
@@ -244,7 +244,7 @@ const PostsFeed = ({ user }) => {
                     .from('post_likes')
                     .delete()
                     .eq('post_id', postId)
-                    .eq('admin_id', user.id);
+                    .eq('sbo_officer_id', user.id);
 
                 if (unlikeError) throw unlikeError;
 
@@ -258,7 +258,7 @@ const PostsFeed = ({ user }) => {
                     .from('post_likes')
                     .insert({
                         post_id: postId,
-                        admin_id: user.id
+                        sbo_officer_id: user.id
                     });
 
                 if (likeError) throw likeError;
@@ -317,7 +317,7 @@ const PostsFeed = ({ user }) => {
                         <Button
                             onClick={() => setShowCreateForm(!showCreateForm)}
                             size="sm"
-                            className="bg-blue-600 hover:bg-blue-700"
+                            className="bg-green-600 hover:bg-green-700"
                         >
                             <Plus className="h-4 w-4 mr-2" />
                             {showCreateForm ? 'Cancel' : 'Create Post'}
@@ -328,8 +328,8 @@ const PostsFeed = ({ user }) => {
                     {showCreateForm && (
                         <form onSubmit={handleCreatePost} className="space-y-4 mb-6">
                             <div className="flex space-x-4">
-                                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold">
-                                    {user?.full_name?.split(' ').map(n => n[0]).join('') || 'A'}
+                                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-bold">
+                                    {user?.full_name?.split(' ').map(n => n[0]).join('') || 'S'}
                                 </div>
                                 <div className="flex-1">
                                     <Input
@@ -348,7 +348,7 @@ const PostsFeed = ({ user }) => {
                                                         <img
                                                             src={URL.createObjectURL(image)}
                                                             alt={`Preview ${index + 1}`}
-                                                            className="w-20 h-20 object-cover rounded-lg border-2 border-gray-200 hover:border-blue-300 transition-colors"
+                                                            className="w-20 h-20 object-cover rounded-lg border-2 border-white/30 hover:border-blue-300 transition-colors"
                                                         />
                                                         <button
                                                             type="button"
@@ -365,7 +365,7 @@ const PostsFeed = ({ user }) => {
                                                     </div>
                                                 ))}
                                             </div>
-                                            <p className="text-sm text-white/50 mt-1">
+                                            <p className="text-sm text-white/70 mt-1">
                                                 {selectedImages.length}/3 images selected • {selectedImages.reduce((total, img) => total + img.size, 0).toFixed(1)} MB total
                                             </p>
                                         </div>
@@ -379,6 +379,7 @@ const PostsFeed = ({ user }) => {
                                                 size="sm"
                                                 onClick={() => fileInputRef.current?.click()}
                                                 disabled={selectedImages.length >= 3}
+                                                className="text-white/70 hover:text-white hover:bg-white/10"
                                             >
                                                 <Image className="h-4 w-4 mr-1" />
                                                 Photo ({selectedImages.length}/3)
@@ -401,6 +402,7 @@ const PostsFeed = ({ user }) => {
                                                         description: "Emoji picker will be available soon."
                                                     });
                                                 }}
+                                                className="text-white/70 hover:text-white hover:bg-white/10"
                                             >
                                                 <Smile className="h-4 w-4 mr-1" />
                                                 Emoji
@@ -409,6 +411,7 @@ const PostsFeed = ({ user }) => {
                                         <Button
                                             type="submit"
                                             disabled={(!newPost.trim() && selectedImages.length === 0) || uploading}
+                                            className="bg-blue-600 hover:bg-blue-700"
                                         >
                                             {uploading ? 'Posting...' : 'Post'}
                                         </Button>
@@ -427,10 +430,10 @@ const PostsFeed = ({ user }) => {
                             </div>
                         ) : (
                             posts.map((post) => (
-                                <Card key={post.id} className="bg-white/10 backdrop-blur-md border border-white/20">
+                                <Card key={post.id} className="bg-white/5 backdrop-blur-sm border border-white/20">
                                     <CardHeader>
                                         <div className="flex items-center space-x-3">
-                                            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                                            <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
                                                 {post.authorName?.split(' ').map(n => n[0]).join('') || 'U'}
                                             </div>
                                             <div>
@@ -464,7 +467,7 @@ const PostsFeed = ({ user }) => {
                                                                 loading="lazy"
                                                             />
                                                             <div
-                                                                className="hidden w-full h-32 bg-gray-200 rounded-lg items-center justify-center text-gray-500 text-sm"
+                                                                className="hidden w-full h-32 bg-white/20 rounded-lg items-center justify-center text-white/70 text-sm"
                                                                 style={{ display: 'none' }}
                                                             >
                                                                 <span>Image not available</span>
@@ -480,16 +483,16 @@ const PostsFeed = ({ user }) => {
                                                 variant="ghost"
                                                 size="sm"
                                                 onClick={() => handleLike(post.id)}
-                                                className={checkIfLiked(post.id) ? 'text-red-500' : ''}
+                                                className={`text-white/70 hover:text-white hover:bg-white/10 ${checkIfLiked(post.id) ? 'text-red-400' : ''}`}
                                             >
                                                 <Heart className={`h-4 w-4 mr-1 ${checkIfLiked(post.id) ? 'fill-current' : ''}`} />
                                                 {post.likes_count || 0}
                                             </Button>
-                                            <Button variant="ghost" size="sm">
+                                            <Button variant="ghost" size="sm" className="text-white/70 hover:text-white hover:bg-white/10">
                                                 <MessageCircle className="h-4 w-4 mr-1" />
                                                 Comment
                                             </Button>
-                                            <Button variant="ghost" size="sm">
+                                            <Button variant="ghost" size="sm" className="text-white/70 hover:text-white hover:bg-white/10">
                                                 <Share2 className="h-4 w-4 mr-1" />
                                                 Share
                                             </Button>

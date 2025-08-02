@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { User, Lock, Eye, EyeOff, Shield, ArrowLeft } from "lucide-react";
+import { User, Lock, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { Logo } from "@/components/ui/logo";
 import Link from "next/link";
 
 const LoginForm = ({ onLogin }) => {
@@ -55,7 +56,7 @@ const LoginForm = ({ onLogin }) => {
           <Card variant="gradient" className="shadow-[var(--shadow-elegant)]">
             <CardHeader className="text-center">
               <div className="flex items-center justify-center mb-4">
-                <Shield className="h-12 w-12 text-primary" />
+                <Logo size="large" useImage={true} />
               </div>
               <CardTitle className="text-2xl text-primary">SBO Login</CardTitle>
               <CardDescription>
@@ -123,7 +124,7 @@ const LoginForm = ({ onLogin }) => {
                     </>
                   ) : (
                     <>
-                      <Shield className="h-4 w-4 mr-2" />
+                      <Logo size="small" useImage={true} className="mr-2" />
                       Login
                     </>
                   )}
