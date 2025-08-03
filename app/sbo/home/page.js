@@ -6,6 +6,7 @@ import { useScanner } from '@/hooks/useScanner';
 import { useAttendanceStats } from '@/hooks/useAttendanceStats';
 import { usePosts } from '@/hooks/usePosts';
 import { useCardAnimation } from '@/hooks/useCardAnimation';
+import { toast } from '@/hooks/use-toast';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -13,13 +14,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Menu, LogOut, Target, UserCheck, Clock, History, QrCode } from "lucide-react";
 import Link from "next/link";
 import Sidebar from '@/app/sbo/components/Sidebar';
-import ScannerModal from '@/app/sbo/components/ScannerModal';
+import FixedQRScanner from '@/app/sbo/components/FixedQRScanner';
 import StudentPopup from '@/app/sbo/components/StudentPopup';
 import PostsFeed from '@/app/sbo/components/PostsFeed';
 import PostModeration from '@/app/sbo/components/PostModeration';
 import ReportsPanel from '@/app/sbo/components/ReportsPanel';
 import ScanHistory from '@/app/sbo/components/ScanHistory';
 import EventsManagement from '@/components/EventsManagement';
+import QRCodeGenerator from '@/app/sbo/components/QRCodeGenerator';
 
 const SboHome = () => {
     const { user, loading, logout } = useAuthUser();
@@ -44,18 +46,16 @@ const SboHome = () => {
 
     const {
         isScanning,
-        isFullScreenScanner,
         showStudentPopup,
         scannedStudentInfo,
         scanHistory,
         getCurrentTimeInfo,
-        startFullScreenScanning,
-        stopScanning,
         handleRecordAttendance,
         clearScanHistory,
-        onCloseScanner,
         onClosePopup
     } = useScanner();
+
+    const [showScanner, setShowScanner] = useState(false);
 
     const { stats, tribeStats } = useAttendanceStats();
     const { posts, pendingPosts } = usePosts();
@@ -85,6 +85,7 @@ const SboHome = () => {
                 user={user}
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
+                isMobile={isMobile}
             />
         </div>
     );
@@ -104,9 +105,9 @@ const SboHome = () => {
                                             <Menu className="h-5 w-5" />
                                         </Button>
                                     </SheetTrigger>
-                                    <SheetContent side="left" className="w-80">
+                                    <SheetContent side="left" className="w-80" style={{ backgroundColor: '#13392F' }}>
                                         <SheetHeader>
-                                            <SheetTitle>SBO Dashboard</SheetTitle>
+                                            <SheetTitle className="text-white">SBO Dashboard</SheetTitle>
                                         </SheetHeader>
                                         <div className="mt-6">
                                             <NavigationContent />
@@ -185,7 +186,7 @@ const SboHome = () => {
                                                 </div>
                                                 <div>
                                                     <p className="text-sm text-white/70">Scanner Status</p>
-                                                    <p className="text-2xl font-bold text-blue-600">{isScanning ? 'Active' : 'Ready'}</p>
+                                                    <p className="text-2xl font-bold text-blue-600">{showScanner ? 'Active' : 'Ready'}</p>
                                                 </div>
                                             </div>
                                         </CardContent>
@@ -218,7 +219,7 @@ const SboHome = () => {
                                     <CardContent className="p-6">
                                         <div className="text-center">
                                             <button
-                                                onClick={startFullScreenScanning}
+                                                onClick={() => setShowScanner(true)}
                                                 className="bg-white/20 backdrop-blur-md border border-white/30 text-white px-8 py-4 rounded-lg text-lg font-medium hover:bg-blue-500/30 transition-colors"
                                             >
                                                 Start QR Scanner
@@ -251,19 +252,27 @@ const SboHome = () => {
                         {activeTab === "scoring" && <EventsManagement user={user} />}
                         {activeTab === "moderation" && <PostModeration />}
                         {activeTab === "reports" && <ReportsPanel />}
+                        {activeTab === "qr-generator" && <QRCodeGenerator />}
                     </div>
                 </div>
             </div>
 
             {/* Modals */}
-            <ScannerModal
-                isFullScreenScanner={isFullScreenScanner}
-                isScanning={isScanning}
-                onClose={onCloseScanner}
-                onStartScanning={startFullScreenScanning}
-                onStopScanning={stopScanning}
-                getCurrentTimeInfo={getCurrentTimeInfo}
-            />
+            {showScanner && (
+                <FixedQRScanner
+                    onScan={(qrData) => {
+                        console.log('QR Code scanned:', qrData);
+                        // Handle the scanned QR data
+                        setShowScanner(false);
+                        // You can add logic here to process the scanned data
+                        toast({
+                            title: "QR Code Scanned",
+                            description: `Scanned: ${qrData.name} (${qrData.student_id})`,
+                        });
+                    }}
+                    onClose={() => setShowScanner(false)}
+                />
+            )}
 
             <StudentPopup
                 showStudentPopup={showStudentPopup}

@@ -712,8 +712,8 @@ const FacultyHome = () => {
                             </div>
                         )}
 
-                        {activeTab === "events" && <EventsManagement user={user} />}
-                        {activeTab === "scoring" && <EventsManagement user={user} />}
+                        {activeTab === "events" && <EventsManagement user={user} mode="events" />}
+                        {activeTab === "scoring" && <EventsManagement user={user} mode="scoring" />}
                     </div>
                 </div>
             </div>

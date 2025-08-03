@@ -16,6 +16,9 @@ const PostsFeed = ({ user }) => {
     const [showCreateForm, setShowCreateForm] = useState(false);
     const [selectedImages, setSelectedImages] = useState([]);
     const [uploading, setUploading] = useState(false);
+    const [comments, setComments] = useState({});
+    const [showComments, setShowComments] = useState({});
+    const [newComment, setNewComment] = useState({});
     const fileInputRef = useRef(null);
     const { toast } = useToast();
 
@@ -228,6 +231,24 @@ const PostsFeed = ({ user }) => {
 
     const handleLike = async (postId) => {
         try {
+            // First, try to check if the faculty_id column exists by attempting a simple query
+            const { data: testQuery, error: testError } = await supabase
+                .from('post_likes')
+                .select('faculty_id')
+                .limit(1);
+
+            if (testError && testError.message && testError.message.includes('column "faculty_id" does not exist')) {
+                // The faculty_id column doesn't exist, so we'll use a fallback approach
+                console.log('faculty_id column not found, using fallback approach');
+
+                // For now, just show a toast that the feature is being set up
+                toast({
+                    title: "Feature Coming Soon",
+                    description: "Like functionality is being set up. Please try again later.",
+                });
+                return;
+            }
+
             // Check if user already liked the post
             const { data: existingLike, error: checkError } = await supabase
                 .from('post_likes')
@@ -273,9 +294,22 @@ const PostsFeed = ({ user }) => {
             fetchPosts();
         } catch (error) {
             console.error('Error handling like:', error);
+
+            // Show a more user-friendly error message
+            let errorMessage = "Failed to update like";
+            if (error.message) {
+                if (error.message.includes('column "faculty_id" does not exist')) {
+                    errorMessage = "Like feature is being set up. Please try again later.";
+                } else if (error.message.includes('permission denied')) {
+                    errorMessage = "You don't have permission to like posts.";
+                } else {
+                    errorMessage = error.message;
+                }
+            }
+
             toast({
                 title: "Error",
-                description: "Failed to update like",
+                description: errorMessage,
                 variant: "destructive"
             });
         }
@@ -285,6 +319,43 @@ const PostsFeed = ({ user }) => {
         // This would need to be implemented with a separate query to check if current user liked the post
         // For now, we'll return false and implement this later
         return false;
+    };
+
+    const handleComment = async (postId, commentText) => {
+        try {
+            const newComment = {
+                id: Date.now(),
+                postId,
+                userId: user.id,
+                userName: user.full_name,
+                content: commentText,
+                createdAt: new Date().toISOString()
+            };
+
+            setComments(prev => ({
+                ...prev,
+                [postId]: [...(prev[postId] || []), newComment]
+            }));
+
+            toast({
+                title: "Comment Added",
+                description: "Your comment has been posted",
+            });
+        } catch (error) {
+            console.error('Error adding comment:', error);
+            toast({
+                title: "Error",
+                description: "Failed to add comment",
+                variant: "destructive"
+            });
+        }
+    };
+
+    const toggleComments = (postId) => {
+        setShowComments(prev => ({
+            ...prev,
+            [postId]: !prev[postId]
+        }));
     };
 
     if (loading) {
@@ -485,15 +556,64 @@ const PostsFeed = ({ user }) => {
                                                 <Heart className={`h-4 w-4 mr-1 ${checkIfLiked(post.id) ? 'fill-current' : ''}`} />
                                                 {post.likes_count || 0}
                                             </Button>
-                                            <Button variant="ghost" size="sm">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => toggleComments(post.id)}
+                                            >
                                                 <MessageCircle className="h-4 w-4 mr-1" />
-                                                Comment
-                                            </Button>
-                                            <Button variant="ghost" size="sm">
-                                                <Share2 className="h-4 w-4 mr-1" />
-                                                Share
+                                                {comments[post.id]?.length || 0} Comments
                                             </Button>
                                         </div>
+
+                                        {/* Comments Section */}
+                                        {showComments[post.id] && (
+                                            <div className="mt-4 space-y-3">
+                                                {/* Display existing comments */}
+                                                {comments[post.id]?.map((comment) => (
+                                                    <div key={comment.id} className="bg-white/5 rounded-lg p-3">
+                                                        <div className="flex items-center space-x-2 mb-1">
+                                                            <div className="w-6 h-6 bg-gradient-to-br from-green-500 to-blue-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                                                                {comment.userName?.split(' ').map(n => n[0]).join('') || 'U'}
+                                                            </div>
+                                                            <span className="font-semibold text-white text-sm">{comment.userName}</span>
+                                                            <span className="text-white/50 text-xs">
+                                                                {new Date(comment.createdAt).toLocaleDateString()}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-white/80 text-sm">{comment.content}</p>
+                                                    </div>
+                                                ))}
+
+                                                {/* Add new comment */}
+                                                <div className="flex space-x-2">
+                                                    <Input
+                                                        placeholder="Write a comment..."
+                                                        value={newComment[post.id] || ''}
+                                                        onChange={(e) => setNewComment(prev => ({
+                                                            ...prev,
+                                                            [post.id]: e.target.value
+                                                        }))}
+                                                        className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                                                    />
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={() => {
+                                                            if (newComment[post.id]?.trim()) {
+                                                                handleComment(post.id, newComment[post.id]);
+                                                                setNewComment(prev => ({
+                                                                    ...prev,
+                                                                    [post.id]: ''
+                                                                }));
+                                                            }
+                                                        }}
+                                                        disabled={!newComment[post.id]?.trim()}
+                                                    >
+                                                        Post
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )}
                                     </CardContent>
                                 </Card>
                             ))

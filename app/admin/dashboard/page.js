@@ -13,6 +13,7 @@ import TribePerformance from '../components/TribePerformance';
 import PostsFeed from '../components/PostsFeed';
 import NavigationSidebar from '../components/NavigationSidebar';
 import TribeManagementModal from '../components/TribeManagementModal';
+import EventsManagement from '@/components/EventsManagement';
 
 const AdminDashboard = () => {
     const { user, loading, logout } = useAuthUser();
@@ -64,6 +65,7 @@ const AdminDashboard = () => {
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
                 onManageTribes={() => setShowTribeModal(true)}
+                isMobile={isMobile}
             />
         </div>
     );
@@ -75,9 +77,27 @@ const AdminDashboard = () => {
                 <div className="max-w-7xl mx-auto px-4">
                     <div className="flex items-center justify-between h-16">
                         <div className="flex items-center space-x-4">
-                            <Link href="/" className="text-white hover:text-white/80">
-                                <ArrowLeft className="h-5 w-5" />
-                            </Link>
+                            {isMobile ? (
+                                <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+                                    <SheetTrigger asChild>
+                                        <Button variant="ghost" size="sm" className="text-white hover:text-white/80">
+                                            <Menu className="h-5 w-5" />
+                                        </Button>
+                                    </SheetTrigger>
+                                    <SheetContent side="left" className="w-80" style={{ backgroundColor: '#13392F' }}>
+                                        <SheetHeader>
+                                            <SheetTitle className="text-white">Admin Dashboard</SheetTitle>
+                                        </SheetHeader>
+                                        <div className="mt-6">
+                                            <NavigationContent />
+                                        </div>
+                                    </SheetContent>
+                                </Sheet>
+                            ) : (
+                                <Link href="/" className="text-white hover:text-white/80">
+                                    <ArrowLeft className="h-5 w-5" />
+                                </Link>
+                            )}
                             <div className="flex items-center space-x-2">
                                 <span className="font-semibold text-lg text-white">Admin Portal</span>
                             </div>
@@ -87,25 +107,6 @@ const AdminDashboard = () => {
                             <div className="hidden sm:flex items-center space-x-2 bg-white/20 backdrop-blur-md px-3 py-1 rounded-full">
                                 <span className="text-sm font-medium text-white">Administrator</span>
                             </div>
-
-                            {/* Mobile Menu */}
-                            {isMobile && (
-                                <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-                                    <SheetTrigger asChild>
-                                        <Button variant="ghost" size="sm">
-                                            <Menu className="h-5 w-5" />
-                                        </Button>
-                                    </SheetTrigger>
-                                    <SheetContent side="left" className="w-80">
-                                        <SheetHeader>
-                                            <SheetTitle>Admin Dashboard</SheetTitle>
-                                        </SheetHeader>
-                                        <div className="mt-6">
-                                            <NavigationContent />
-                                        </div>
-                                    </SheetContent>
-                                </Sheet>
-                            )}
 
                             <Button variant="ghost" size="sm" onClick={logout} className="text-gray-400 hover:text-gray-300 hover:bg-gray-800/20">
                                 <LogOut className="h-4 w-4" />
@@ -138,6 +139,14 @@ const AdminDashboard = () => {
 
                         {activeTab === "posts" && (
                             <PostsFeed user={user} />
+                        )}
+
+                        {activeTab === "events" && (
+                            <EventsManagement user={user} mode="events" />
+                        )}
+
+                        {activeTab === "scoring" && (
+                            <EventsManagement user={user} mode="scoring" />
                         )}
 
                         {activeTab === "tribes" && (

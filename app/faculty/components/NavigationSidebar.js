@@ -9,8 +9,9 @@ import {
     Plus,
     Trophy
 } from 'lucide-react';
+import { ScrollArea } from "@/components/ui/scroll-area";
 
-const NavigationSidebar = ({ activeTab, setActiveTab }) => {
+const NavigationSidebar = ({ activeTab, setActiveTab, isMobile = false }) => {
     const navigationItems = [
         {
             id: "overview",
@@ -64,7 +65,7 @@ const NavigationSidebar = ({ activeTab, setActiveTab }) => {
         }
     };
 
-    return (
+    const sidebarContent = (
         <div className="space-y-6">
             {/* Navigation */}
             <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-4">
@@ -75,8 +76,8 @@ const NavigationSidebar = ({ activeTab, setActiveTab }) => {
                             key={item.id}
                             onClick={() => setActiveTab(item.id)}
                             className={`w-full text-left px-3 py-3 rounded-lg transition-colors ${activeTab === item.id
-                                ? "bg-white/30 text-white backdrop-blur-md"
-                                : "hover:bg-white/10 text-white/70"
+                                ? "bg-white/20 text-white backdrop-blur-md border border-white/30"
+                                : "hover:bg-white/10 text-white/70 hover:text-white"
                                 }`}
                         >
                             <div className="flex items-center space-x-3">
@@ -108,6 +109,14 @@ const NavigationSidebar = ({ activeTab, setActiveTab }) => {
                 </div>
             </div>
         </div>
+    );
+
+    return isMobile ? (
+        <ScrollArea className="h-[calc(100vh-120px)]">
+            {sidebarContent}
+        </ScrollArea>
+    ) : (
+        sidebarContent
     );
 };
 

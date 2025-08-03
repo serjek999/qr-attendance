@@ -527,7 +527,7 @@ const AdminHome = () => {
     ];
 
     const NavigationContent = () => (
-        <div className="space-y-6 overflow-y-auto max-h-screen">
+        <div className="space-y-6">
             {/* User Profile Card */}
             <Card className="bg-white/10 backdrop-blur-md border border-white/20">
                 <CardContent className="p-6">
@@ -552,7 +552,7 @@ const AdminHome = () => {
                 <CardContent className="p-4">
                     <nav className="space-y-2">
                         <Button
-                            className={`w-full justify-start ${activeTab === "overview" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
+                            className={`w-full justify-start ${activeTab === "overview" ? "bg-white/20 text-white backdrop-blur-md border border-white/30" : "bg-transparent text-white/70 hover:bg-white/10 hover:text-white"}`}
                             onClick={() => {
                                 setActiveTab("overview");
                                 setIsSheetOpen(false);
@@ -562,7 +562,7 @@ const AdminHome = () => {
                             Overview
                         </Button>
                         <Button
-                            className={`w-full justify-start ${activeTab === "reports" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
+                            className={`w-full justify-start ${activeTab === "reports" ? "bg-white/20 text-white backdrop-blur-md border border-white/30" : "bg-transparent text-white/70 hover:bg-white/10 hover:text-white"}`}
                             onClick={() => {
                                 setActiveTab("reports");
                                 setIsSheetOpen(false);
@@ -572,7 +572,7 @@ const AdminHome = () => {
                             Reports
                         </Button>
                         <Button
-                            className={`w-full justify-start ${activeTab === "leaderboard" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
+                            className={`w-full justify-start ${activeTab === "leaderboard" ? "bg-white/20 text-white backdrop-blur-md border border-white/30" : "bg-transparent text-white/70 hover:bg-white/10 hover:text-white"}`}
                             onClick={() => {
                                 setActiveTab("leaderboard");
                                 setIsSheetOpen(false);
@@ -582,7 +582,7 @@ const AdminHome = () => {
                             Leaderboard
                         </Button>
                         <Button
-                            className={`w-full justify-start ${activeTab === "analytics" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
+                            className={`w-full justify-start ${activeTab === "analytics" ? "bg-white/20 text-white backdrop-blur-md border border-white/30" : "bg-transparent text-white/70 hover:bg-white/10 hover:text-white"}`}
                             onClick={() => {
                                 setActiveTab("analytics");
                                 setIsSheetOpen(false);
@@ -592,7 +592,7 @@ const AdminHome = () => {
                             Analytics
                         </Button>
                         <Button
-                            className={`w-full justify-start ${activeTab === "posts" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
+                            className={`w-full justify-start ${activeTab === "posts" ? "bg-white/20 text-white backdrop-blur-md border border-white/30" : "bg-transparent text-white/70 hover:bg-white/10 hover:text-white"}`}
                             onClick={() => {
                                 setActiveTab("posts");
                                 setIsSheetOpen(false);
@@ -602,7 +602,7 @@ const AdminHome = () => {
                             All Posts
                         </Button>
                         <Button
-                            className={`w-full justify-start ${activeTab === "management" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
+                            className={`w-full justify-start ${activeTab === "management" ? "bg-white/20 text-white backdrop-blur-md border border-white/30" : "bg-transparent text-white/70 hover:bg-white/10 hover:text-white"}`}
                             onClick={() => {
                                 setActiveTab("management");
                                 setIsSheetOpen(false);
@@ -612,7 +612,7 @@ const AdminHome = () => {
                             Management
                         </Button>
                         <Button
-                            className={`w-full justify-start ${activeTab === "events" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
+                            className={`w-full justify-start ${activeTab === "events" ? "bg-white/20 text-white backdrop-blur-md border border-white/30" : "bg-transparent text-white/70 hover:bg-white/10 hover:text-white"}`}
                             onClick={() => {
                                 setActiveTab("events");
                                 setIsSheetOpen(false);
@@ -622,7 +622,7 @@ const AdminHome = () => {
                             Events
                         </Button>
                         <Button
-                            className={`w-full justify-start ${activeTab === "scoring" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
+                            className={`w-full justify-start ${activeTab === "scoring" ? "bg-white/20 text-white backdrop-blur-md border border-white/30" : "bg-transparent text-white/70 hover:bg-white/10 hover:text-white"}`}
                             onClick={() => {
                                 setActiveTab("scoring");
                                 setIsSheetOpen(false);
@@ -716,9 +716,9 @@ const AdminHome = () => {
                                             <Menu className="h-5 w-5" />
                                         </Button>
                                     </SheetTrigger>
-                                    <SheetContent side="left" className="w-80">
+                                    <SheetContent side="left" className="w-80" style={{ backgroundColor: '#13392F' }}>
                                         <SheetHeader>
-                                            <SheetTitle>Admin Dashboard</SheetTitle>
+                                            <SheetTitle className="text-white">Admin Dashboard</SheetTitle>
                                         </SheetHeader>
                                         <div className="mt-6">
                                             <NavigationContent />
@@ -1139,8 +1139,8 @@ const AdminHome = () => {
                             </div>
                         )}
 
-                        {activeTab === "events" && <EventsManagement user={user} />}
-                        {activeTab === "scoring" && <EventsManagement user={user} />}
+                        {activeTab === "events" && <EventsManagement user={user} mode="events" />}
+                        {activeTab === "scoring" && <EventsManagement user={user} mode="scoring" />}
                     </div>
                 </div>
             </div>

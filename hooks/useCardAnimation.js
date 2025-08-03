@@ -1,12 +1,18 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 export const useCardAnimation = (cardCount = 0, delay = 100) => {
     const [animatedCards, setAnimatedCards] = useState([]);
+    const hasAnimated = useRef(false);
 
     useEffect(() => {
-        // Reset animations on mount
-        setAnimatedCards([]);
+        // Only animate once per component lifecycle
+        if (hasAnimated.current) {
+            return;
+        }
+
+        // Small delay to ensure smooth animation
+        const initialDelay = 100;
 
         // Trigger animations with staggered delays
         const timeouts = [];
@@ -14,9 +20,11 @@ export const useCardAnimation = (cardCount = 0, delay = 100) => {
         for (let i = 0; i < cardCount; i++) {
             const timeout = setTimeout(() => {
                 setAnimatedCards(prev => [...prev, i]);
-            }, i * delay);
+            }, initialDelay + (i * delay));
             timeouts.push(timeout);
         }
+
+        hasAnimated.current = true;
 
         // Cleanup timeouts on unmount
         return () => {

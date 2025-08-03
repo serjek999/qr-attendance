@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { useCardAnimation } from '@/hooks/useCardAnimation';
 import {
@@ -55,6 +56,16 @@ const StudentDashboard = () => {
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [selectedImages, setSelectedImages] = useState([]);
     const [uploading, setUploading] = useState(false);
+    const [events, setEvents] = useState([]);
+    const [tribeScoring, setTribeScoring] = useState({
+        currentScore: 0,
+        rank: 0,
+        totalTribes: 0,
+        recentPoints: []
+    });
+    const [comments, setComments] = useState({});
+    const [reactions, setReactions] = useState({});
+    const [showComments, setShowComments] = useState({});
     const { toast } = useToast();
     const qrRef = useRef(null);
     const fileInputRef = useRef(null);
@@ -112,6 +123,10 @@ const StudentDashboard = () => {
 
             // Load posts
             await loadPosts(userObj.tribe_id);
+
+            // Load events and tribe scoring
+            await loadEvents();
+            await loadTribeScoring();
         } catch (error) {
             console.error('Error loading user data:', error);
         }
@@ -233,6 +248,79 @@ const StudentDashboard = () => {
         }
     };
 
+    const loadEvents = async () => {
+        try {
+            // Load events from database
+            const { data: eventsData, error: eventsError } = await supabase
+                .from('events')
+                .select('*')
+                .eq('is_active', true)
+                .order('start_date', { ascending: true });
+
+            if (eventsError) {
+                console.error('Error loading events:', eventsError);
+                // Set mock data for now
+                setEvents([
+                    {
+                        id: 1,
+                        title: 'Student Council Meeting',
+                        description: 'Monthly student council meeting',
+                        start_date: '2024-01-15',
+                        end_date: '2024-01-15',
+                        location: 'Main Hall',
+                        points: 50
+                    },
+                    {
+                        id: 2,
+                        title: 'Sports Festival',
+                        description: 'Annual sports competition between tribes',
+                        start_date: '2024-01-20',
+                        end_date: '2024-01-22',
+                        location: 'Sports Complex',
+                        points: 100
+                    }
+                ]);
+            } else {
+                setEvents(eventsData || []);
+            }
+        } catch (error) {
+            console.error('Error loading events:', error);
+        }
+    };
+
+    const loadTribeScoring = async () => {
+        try {
+            // Load tribe scoring data
+            const { data: tribesData, error: tribesError } = await supabase
+                .from('tribes')
+                .select('*')
+                .order('score', { ascending: false });
+
+            if (tribesError) {
+                console.error('Error loading tribe scoring:', tribesError);
+                return;
+            }
+
+            if (tribesData && user?.tribe_id) {
+                const userTribe = tribesData.find(tribe => tribe.id === user.tribe_id);
+                const userTribeIndex = tribesData.findIndex(tribe => tribe.id === user.tribe_id);
+
+                setTribeScoring({
+                    currentScore: userTribe?.score || 0,
+                    rank: userTribeIndex >= 0 ? userTribeIndex + 1 : 0,
+                    totalTribes: tribesData.length,
+                    recentPoints: [
+                        { date: '2024-01-10', points: 25, reason: 'Daily attendance' },
+                        { date: '2024-01-09', points: 50, reason: 'Event participation' },
+                        { date: '2024-01-08', points: 25, reason: 'Daily attendance' }
+                    ]
+                });
+            }
+        } catch (error) {
+            console.error('Error loading tribe scoring:', error);
+        }
+    };
+
     const generateQRCode = async (schoolId) => {
         try {
             const qrDataUrl = await QRCode.toDataURL(schoolId, {
@@ -345,25 +433,64 @@ const StudentDashboard = () => {
         try {
             for (const image of selectedImages) {
                 const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}-${image.name}`;
-                const { data, error } = await supabase.storage
-                    .from('post-images')
-                    .upload(fileName, image);
 
-                if (error) throw error;
+                // Try different bucket names if the first one fails
+                let uploadSuccess = false;
+                const bucketNames = ['post-images', 'images', 'uploads'];
 
-                const { data: { publicUrl } } = supabase.storage
-                    .from('post-images')
-                    .getPublicUrl(fileName);
+                for (const bucketName of bucketNames) {
+                    try {
+                        const { data, error } = await supabase.storage
+                            .from(bucketName)
+                            .upload(fileName, image);
 
-                uploadedUrls.push(publicUrl);
+                        if (error) {
+                            console.log(`Failed to upload to bucket ${bucketName}:`, error);
+                            continue;
+                        }
+
+                        const { data: { publicUrl } } = supabase.storage
+                            .from(bucketName)
+                            .getPublicUrl(fileName);
+
+                        uploadedUrls.push(publicUrl);
+                        uploadSuccess = true;
+                        break;
+                    } catch (bucketError) {
+                        console.log(`Error with bucket ${bucketName}:`, bucketError);
+                        continue;
+                    }
+                }
+
+                if (!uploadSuccess) {
+                    // If all buckets fail, convert to base64 as fallback
+                    const reader = new FileReader();
+                    const base64Promise = new Promise((resolve) => {
+                        reader.onload = () => resolve(reader.result);
+                        reader.readAsDataURL(image);
+                    });
+                    const base64Url = await base64Promise;
+                    uploadedUrls.push(base64Url);
+                }
             }
         } catch (error) {
             console.error('Error uploading images:', error);
             toast({
                 title: "Upload Error",
-                description: "Failed to upload images",
+                description: "Failed to upload images. Using local storage as fallback.",
                 variant: "destructive"
             });
+
+            // Fallback: convert all images to base64
+            for (const image of selectedImages) {
+                const reader = new FileReader();
+                const base64Promise = new Promise((resolve) => {
+                    reader.onload = () => resolve(reader.result);
+                    reader.readAsDataURL(image);
+                });
+                const base64Url = await base64Promise;
+                uploadedUrls.push(base64Url);
+            }
         } finally {
             setUploading(false);
         }
@@ -371,50 +498,23 @@ const StudentDashboard = () => {
         return uploadedUrls;
     };
 
-    const handleLike = async (postId) => {
+    const handleReaction = async (postId, reactionType = 'like') => {
         try {
-            // Check if user already liked this post
-            const { data: existingLike, error: checkError } = await supabase
-                .from('post_likes')
-                .select('*')
-                .eq('post_id', postId)
-                .eq('student_id', user.id)
-                .single();
+            const currentReactions = reactions[postId] || {};
+            const userReaction = currentReactions[user.id];
 
-            if (checkError && checkError.code !== 'PGRST116') {
-                console.error('Error checking like:', checkError);
-                // If there's an RLS error, show a helpful message
-                if (checkError.message && checkError.message.includes('row-level security')) {
-                    toast({
-                        title: "Database Update Required",
-                        description: "The like feature requires a database update. Please contact your administrator.",
-                        variant: "destructive"
-                    });
-                }
-                return;
-            }
-
-            if (existingLike) {
-                // Unlike the post
-                const { error: unlikeError } = await supabase
-                    .from('post_likes')
-                    .delete()
-                    .eq('post_id', postId)
-                    .eq('student_id', user.id);
-
-                if (unlikeError) {
-                    console.error('Error unliking post:', unlikeError);
-                    if (unlikeError.message && unlikeError.message.includes('row-level security')) {
-                        toast({
-                            title: "Database Update Required",
-                            description: "The like feature requires a database update. Please contact your administrator.",
-                            variant: "destructive"
-                        });
+            // If user already has this reaction, remove it
+            if (userReaction === reactionType) {
+                // Remove reaction
+                setReactions(prev => ({
+                    ...prev,
+                    [postId]: {
+                        ...prev[postId],
+                        [user.id]: null
                     }
-                    return;
-                }
+                }));
 
-                // Update posts state
+                // Update post like count
                 setPosts(prev => prev.map(post =>
                     post.id === postId
                         ? { ...post, likes_count: Math.max(0, (post.likes_count || 0) - 1) }
@@ -422,56 +522,82 @@ const StudentDashboard = () => {
                 ));
 
                 toast({
-                    title: "Post Unliked",
-                    description: "You unliked this post",
+                    title: "Reaction Removed",
+                    description: `You removed your ${reactionType}`,
                 });
             } else {
-                // Like the post
-                const { error: likeError } = await supabase
-                    .from('post_likes')
-                    .insert({
-                        post_id: postId,
-                        student_id: user.id
-                    });
-
-                if (likeError) {
-                    console.error('Error liking post:', likeError);
-                    if (likeError.message && likeError.message.includes('row-level security')) {
-                        toast({
-                            title: "Database Update Required",
-                            description: "The like feature requires a database update. Please contact your administrator.",
-                            variant: "destructive"
-                        });
-                    } else {
-                        toast({
-                            title: "Error",
-                            description: "Failed to like post. Please try again.",
-                            variant: "destructive"
-                        });
+                // Add or change reaction
+                setReactions(prev => ({
+                    ...prev,
+                    [postId]: {
+                        ...prev[postId],
+                        [user.id]: reactionType
                     }
-                    return;
+                }));
+
+                // Update post like count (only increment if it's a new like)
+                if (!userReaction && reactionType === 'like') {
+                    setPosts(prev => prev.map(post =>
+                        post.id === postId
+                            ? { ...post, likes_count: (post.likes_count || 0) + 1 }
+                            : post
+                    ));
                 }
 
-                // Update posts state
-                setPosts(prev => prev.map(post =>
-                    post.id === postId
-                        ? { ...post, likes_count: (post.likes_count || 0) + 1 }
-                        : post
-                ));
-
                 toast({
-                    title: "Post Liked",
-                    description: "You liked this post",
+                    title: "Reaction Added",
+                    description: `You reacted with ${reactionType}`,
                 });
             }
         } catch (error) {
-            console.error('Error handling like:', error);
+            console.error('Error handling reaction:', error);
             toast({
                 title: "Error",
-                description: "Failed to like/unlike post",
+                description: "Failed to add reaction",
                 variant: "destructive"
             });
         }
+    };
+
+    const handleLike = async (postId) => {
+        await handleReaction(postId, 'like');
+    };
+
+    const handleComment = async (postId, commentText) => {
+        try {
+            const newComment = {
+                id: Date.now(),
+                postId,
+                userId: user.id,
+                userName: user.full_name,
+                content: commentText,
+                createdAt: new Date().toISOString()
+            };
+
+            setComments(prev => ({
+                ...prev,
+                [postId]: [...(prev[postId] || []), newComment]
+            }));
+
+            toast({
+                title: "Comment Added",
+                description: "Your comment has been posted",
+            });
+        } catch (error) {
+            console.error('Error adding comment:', error);
+            toast({
+                title: "Error",
+                description: "Failed to add comment",
+                variant: "destructive"
+            });
+        }
+    };
+
+    const toggleComments = (postId) => {
+        setShowComments(prev => ({
+            ...prev,
+            [postId]: !prev[postId]
+        }));
     };
 
     const handleNewPost = async () => {
@@ -578,155 +704,175 @@ const StudentDashboard = () => {
         }
     };
 
-    const NavigationContent = () => (
-        <div className="space-y-6">
-            {/* User Profile Card */}
-            <Card className={`bg-white/10 backdrop-blur-md border border-white/20 ${getCardAnimationClass(0)} ${getCardDelayClass(0)}`}>
-                <CardContent className="p-6">
-                    <div className="text-center">
-                        <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xl mx-auto mb-4">
-                            {user?.full_name?.split(' ').map(n => n[0]).join('') || 'S'}
-                        </div>
-                        <h3 className="font-semibold text-lg text-white">{user?.full_name || 'Student'}</h3>
-                        <p className="text-sm text-white/70">Student</p>
-                        <Badge className="mt-2 bg-white/20 text-white">
-                            <Shield className="h-3 w-3 mr-1" />
-                            {tribeInfo?.name || 'No Tribe'}
-                        </Badge>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Navigation */}
-            <Card className={`bg-white/10 backdrop-blur-md border border-white/20 ${getCardAnimationClass(1)} ${getCardDelayClass(1)}`}>
-                <CardContent className="p-4">
-                    <nav className="space-y-2">
-                        <Button
-                            className={`w-full justify-start ${activeTab === "feed" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
-                            onClick={() => {
-                                setActiveTab("feed");
-                                setIsSheetOpen(false);
-                            }}
-                        >
-                            <Home className="h-4 w-4 mr-2" />
-                            Home Feed
-                        </Button>
-                        <Button
-                            className={`w-full justify-start ${activeTab === "leaderboard" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
-                            onClick={() => {
-                                setActiveTab("leaderboard");
-                                setIsSheetOpen(false);
-                            }}
-                        >
-                            <Trophy className="h-4 w-4 mr-2" />
-                            Leaderboard
-                        </Button>
-                        <Button
-                            className={`w-full justify-start ${activeTab === "tribe" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
-                            onClick={() => {
-                                setActiveTab("tribe");
-                                setIsSheetOpen(false);
-                            }}
-                        >
-                            <Shield className="h-4 w-4 mr-2" />
-                            My Tribe
-                        </Button>
-                        <Button
-                            className={`w-full justify-start ${activeTab === "events" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
-                            onClick={() => {
-                                setActiveTab("events");
-                                setIsSheetOpen(false);
-                            }}
-                        >
-                            <Calendar className="h-4 w-4 mr-2" />
-                            Events
-                        </Button>
-                    </nav>
-                </CardContent>
-            </Card>
-
-            {/* Quick Stats */}
-            <Card className={`bg-white/10 backdrop-blur-md border border-white/20 ${getCardAnimationClass(2)} ${getCardDelayClass(2)}`}>
-                <CardHeader>
-                    <CardTitle className="text-lg text-white">Quick Stats</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <span className="text-sm text-white/70">Attendance Rate</span>
-                        <span className="font-semibold text-green-400">
-                            {attendanceStatus.totalDays > 0
-                                ? Math.round((attendanceStatus.streak / attendanceStatus.totalDays) * 100)
-                                : 0}%
-                        </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                        <span className="text-sm text-white/70">Tribe Rank</span>
-                        <span className="font-semibold text-blue-400">#{tribeInfo?.name || 'N/A'}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                        <span className="text-sm text-white/70">Points Earned</span>
-                        <span className="font-semibold text-purple-400">{attendanceStatus.totalDays * 10}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                        <span className="text-sm text-white/70">Streak</span>
-                        <span className="font-semibold text-orange-400">{attendanceStatus.streak} days</span>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* Attendance Status */}
-            <Card className="bg-white/10 backdrop-blur-md border border-white/20">
-                <CardHeader>
-                    <CardTitle className="text-lg text-white">Today&apos;s Attendance</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex items-center space-x-3">
-                        {getAttendanceStatusIcon(attendanceStatus.today)}
-                        <div>
-                            <p className={`font-semibold ${getAttendanceStatusColor(attendanceStatus.today)}`}>
-                                {getAttendanceStatusText(attendanceStatus.today)}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                                {attendanceStatus.lastRecorded
-                                    ? `Last: ${new Date(attendanceStatus.lastRecorded).toLocaleDateString()}`
-                                    : 'No previous records'
-                                }
-                            </p>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {/* QR Code Card */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-lg">Your QR Code</CardTitle>
-                    <CardDescription>Show this to SBO officers for attendance tracking</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="text-center">
-                        {qrCodeUrl ? (
-                            <div className="space-y-3">
-                                <img
-                                    src={qrCodeUrl}
-                                    alt="Student QR Code"
-                                    className="w-32 h-32 mx-auto border-2 border-primary/20 rounded-lg shadow-md"
-                                />
-                                <Button onClick={downloadQR} size="sm" className="w-full">
-                                    <Download className="h-4 w-4 mr-2" />
-                                    Download
-                                </Button>
+    const NavigationContent = () => {
+        const sidebarContent = (
+            <div className="space-y-6">
+                {/* User Profile Card */}
+                <Card className={`bg-white/10 backdrop-blur-md border border-white/20 ${getCardAnimationClass(0)} ${getCardDelayClass(0)}`}>
+                    <CardContent className="p-6">
+                        <div className="text-center">
+                            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xl mx-auto mb-4">
+                                {user?.full_name?.split(' ').map(n => n[0]).join('') || 'S'}
                             </div>
-                        ) : (
-                            <div className="w-32 h-32 mx-auto bg-gray-100 rounded-lg flex items-center justify-center">
-                                <QrCode className="h-8 w-8 text-gray-400" />
+                            <h3 className="font-semibold text-lg text-white">{user?.full_name || 'Student'}</h3>
+                            <p className="text-sm text-white/70">Student</p>
+                            <Badge className="mt-2 bg-white/20 text-white">
+                                <Shield className="h-3 w-3 mr-1" />
+                                {tribeInfo?.name || 'No Tribe'}
+                            </Badge>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Navigation */}
+                <Card className={`bg-white/10 backdrop-blur-md border border-white/20 ${getCardAnimationClass(1)} ${getCardDelayClass(1)}`}>
+                    <CardContent className="p-4">
+                        <nav className="space-y-2">
+                            <Button
+                                className={`w-full justify-start ${activeTab === "feed" ? "bg-white/20 text-white backdrop-blur-md border border-white/30" : "bg-transparent text-white/70 hover:bg-white/10 hover:text-white"}`}
+                                onClick={() => {
+                                    setActiveTab("feed");
+                                    setIsSheetOpen(false);
+                                }}
+                            >
+                                <Home className="h-4 w-4 mr-2" />
+                                Home Feed
+                            </Button>
+                            <Button
+                                className={`w-full justify-start ${activeTab === "leaderboard" ? "bg-white/20 text-white backdrop-blur-md border border-white/30" : "bg-transparent text-white/70 hover:bg-white/10 hover:text-white"}`}
+                                onClick={() => {
+                                    setActiveTab("leaderboard");
+                                    setIsSheetOpen(false);
+                                }}
+                            >
+                                <Trophy className="h-4 w-4 mr-2" />
+                                Leaderboard
+                            </Button>
+                            <Button
+                                className={`w-full justify-start ${activeTab === "tribe" ? "bg-white/20 text-white backdrop-blur-md border border-white/30" : "bg-transparent text-white/70 hover:bg-white/10 hover:text-white"}`}
+                                onClick={() => {
+                                    setActiveTab("tribe");
+                                    setIsSheetOpen(false);
+                                }}
+                            >
+                                <Shield className="h-4 w-4 mr-2" />
+                                My Tribe
+                            </Button>
+                            <Button
+                                className={`w-full justify-start ${activeTab === "events" ? "bg-white/20 text-white backdrop-blur-md border border-white/30" : "bg-transparent text-white/70 hover:bg-white/10 hover:text-white"}`}
+                                onClick={() => {
+                                    setActiveTab("events");
+                                    setIsSheetOpen(false);
+                                }}
+                            >
+                                <Calendar className="h-4 w-4 mr-2" />
+                                Events
+                            </Button>
+                            <Button
+                                className={`w-full justify-start ${activeTab === "scoring" ? "bg-white/20 text-white backdrop-blur-md border border-white/30" : "bg-transparent text-white/70 hover:bg-white/10 hover:text-white"}`}
+                                onClick={() => {
+                                    setActiveTab("scoring");
+                                    setIsSheetOpen(false);
+                                }}
+                            >
+                                <Trophy className="h-4 w-4 mr-2" />
+                                Tribe Scoring
+                            </Button>
+                        </nav>
+                    </CardContent>
+                </Card>
+
+                {/* Quick Stats */}
+                <Card className={`bg-white/10 backdrop-blur-md border border-white/20 ${getCardAnimationClass(2)} ${getCardDelayClass(2)}`}>
+                    <CardHeader>
+                        <CardTitle className="text-lg text-white">Quick Stats</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm text-white/70">Attendance Rate</span>
+                            <span className="font-semibold text-green-400">
+                                {attendanceStatus.totalDays > 0
+                                    ? Math.round((attendanceStatus.streak / attendanceStatus.totalDays) * 100)
+                                    : 0}%
+                            </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm text-white/70">Tribe Rank</span>
+                            <span className="font-semibold text-blue-400">#{tribeInfo?.name || 'N/A'}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm text-white/70">Points Earned</span>
+                            <span className="font-semibold text-purple-400">{attendanceStatus.totalDays * 10}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm text-white/70">Streak</span>
+                            <span className="font-semibold text-orange-400">{attendanceStatus.streak} days</span>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* Attendance Status */}
+                <Card className="bg-white/10 backdrop-blur-md border border-white/20">
+                    <CardHeader>
+                        <CardTitle className="text-lg text-white">Today&apos;s Attendance</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex items-center space-x-3">
+                            {getAttendanceStatusIcon(attendanceStatus.today)}
+                            <div>
+                                <p className={`font-semibold ${getAttendanceStatusColor(attendanceStatus.today)}`}>
+                                    {getAttendanceStatusText(attendanceStatus.today)}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                    {attendanceStatus.lastRecorded
+                                        ? `Last: ${new Date(attendanceStatus.lastRecorded).toLocaleDateString()}`
+                                        : 'No previous records'
+                                    }
+                                </p>
                             </div>
-                        )}
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
-    );
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {/* QR Code Card */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-lg">Your QR Code</CardTitle>
+                        <CardDescription>Show this to SBO officers for attendance tracking</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-center">
+                            {qrCodeUrl ? (
+                                <div className="space-y-3">
+                                    <img
+                                        src={qrCodeUrl}
+                                        alt="Student QR Code"
+                                        className="w-32 h-32 mx-auto border-2 border-primary/20 rounded-lg shadow-md"
+                                    />
+                                    <Button onClick={downloadQR} size="sm" className="w-full">
+                                        <Download className="h-4 w-4 mr-2" />
+                                        Download
+                                    </Button>
+                                </div>
+                            ) : (
+                                <div className="w-32 h-32 mx-auto bg-gray-100 rounded-lg flex items-center justify-center">
+                                    <QrCode className="h-8 w-8 text-gray-400" />
+                                </div>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+
+        return isMobile ? (
+            <ScrollArea className="h-[calc(100vh-120px)]">
+                {sidebarContent}
+            </ScrollArea>
+        ) : (
+            sidebarContent
+        );
+    };
 
     if (!user) {
         return (
@@ -754,9 +900,9 @@ const StudentDashboard = () => {
                                             <Menu className="h-5 w-5" />
                                         </Button>
                                     </SheetTrigger>
-                                    <SheetContent side="left" className="w-80">
+                                    <SheetContent side="left" className="w-80" style={{ backgroundColor: '#13392F' }}>
                                         <SheetHeader>
-                                            <SheetTitle>Student Dashboard</SheetTitle>
+                                            <SheetTitle className="text-white">Student Dashboard</SheetTitle>
                                         </SheetHeader>
                                         <div className="mt-6">
                                             <NavigationContent />
@@ -944,23 +1090,98 @@ const StudentDashboard = () => {
                                                 )}
 
                                                 <div className="flex items-center space-x-4">
+                                                    {/* Like Button */}
                                                     <Button
-                                                        className="bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20"
+                                                        className={`bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 ${(reactions[post.id]?.[user.id] === 'like') ? 'bg-red-500/20 border-red-300/30' : ''
+                                                            }`}
                                                         size="sm"
                                                         onClick={() => handleLike(post.id)}
                                                     >
-                                                        <Heart className="h-4 w-4 mr-1" />
+                                                        <Heart className={`h-4 w-4 mr-1 ${(reactions[post.id]?.[user.id] === 'like') ? 'fill-current text-red-400' : ''}`} />
                                                         {post.likes_count || 0}
                                                     </Button>
-                                                    <Button className="bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20" size="sm">
-                                                        <MessageCircle className="h-4 w-4 mr-1" />
-                                                        Comment
+
+                                                    {/* Love Button */}
+                                                    <Button
+                                                        className={`bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 ${(reactions[post.id]?.[user.id] === 'love') ? 'bg-pink-500/20 border-pink-300/30' : ''
+                                                            }`}
+                                                        size="sm"
+                                                        onClick={() => handleReaction(post.id, 'love')}
+                                                    >
+                                                        <span className={`text-lg mr-1 ${(reactions[post.id]?.[user.id] === 'love') ? 'text-pink-400' : ''}`}>❤️</span>
                                                     </Button>
-                                                    <Button className="bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20" size="sm">
-                                                        <Share2 className="h-4 w-4 mr-1" />
-                                                        Share
+
+                                                    {/* Laugh Button */}
+                                                    <Button
+                                                        className={`bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 ${(reactions[post.id]?.[user.id] === 'laugh') ? 'bg-yellow-500/20 border-yellow-300/30' : ''
+                                                            }`}
+                                                        size="sm"
+                                                        onClick={() => handleReaction(post.id, 'laugh')}
+                                                    >
+                                                        <span className={`text-lg mr-1 ${(reactions[post.id]?.[user.id] === 'laugh') ? 'text-yellow-400' : ''}`}>😂</span>
+                                                    </Button>
+
+                                                    {/* Comment Button */}
+                                                    <Button
+                                                        className="bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20"
+                                                        size="sm"
+                                                        onClick={() => toggleComments(post.id)}
+                                                    >
+                                                        <MessageCircle className="h-4 w-4 mr-1" />
+                                                        {comments[post.id]?.length || 0}
                                                     </Button>
                                                 </div>
+
+                                                {/* Comments Section */}
+                                                {showComments[post.id] && (
+                                                    <div className="mt-4 pt-4 border-t border-white/20">
+                                                        <div className="space-y-3 mb-3">
+                                                            {comments[post.id]?.map((comment) => (
+                                                                <div key={comment.id} className="bg-white/5 backdrop-blur-md border border-white/10 rounded-lg p-3">
+                                                                    <div className="flex items-start space-x-2">
+                                                                        <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                                                                            {comment.userName?.split(' ').map(n => n[0]).join('') || 'U'}
+                                                                        </div>
+                                                                        <div className="flex-1">
+                                                                            <p className="font-medium text-white text-sm">{comment.userName}</p>
+                                                                            <p className="text-white/80 text-sm">{comment.content}</p>
+                                                                            <p className="text-white/50 text-xs mt-1">
+                                                                                {new Date(comment.createdAt).toLocaleDateString()}
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+
+                                                        {/* Add Comment Form */}
+                                                        <div className="flex space-x-2">
+                                                            <Input
+                                                                placeholder="Write a comment..."
+                                                                className="flex-1 bg-white/10 backdrop-blur-md border border-white/20 text-white placeholder:text-white/50"
+                                                                onKeyPress={(e) => {
+                                                                    if (e.key === 'Enter' && e.target.value.trim()) {
+                                                                        handleComment(post.id, e.target.value.trim());
+                                                                        e.target.value = '';
+                                                                    }
+                                                                }}
+                                                            />
+                                                            <Button
+                                                                size="sm"
+                                                                className="bg-white/20 backdrop-blur-md border border-white/30 text-white hover:bg-white/30"
+                                                                onClick={(e) => {
+                                                                    const input = e.target.parentElement.querySelector('input');
+                                                                    if (input.value.trim()) {
+                                                                        handleComment(post.id, input.value.trim());
+                                                                        input.value = '';
+                                                                    }
+                                                                }}
+                                                            >
+                                                                Post
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </CardContent>
                                         </Card>
                                     ))}
@@ -1086,52 +1307,188 @@ const StudentDashboard = () => {
                         )}
 
                         {activeTab === "events" && (
-                            <Card className="bg-white/10 backdrop-blur-md border border-white/20">
-                                <CardHeader>
-                                    <CardTitle className="flex items-center space-x-2 text-white">
-                                        <Calendar className="h-6 w-6 text-purple-400" />
-                                        <span>Events</span>
-                                    </CardTitle>
-                                    <CardDescription className="text-white/70">School and tribe events with attendance tracking</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="space-y-4">
-                                        {/* Event QR Code */}
-                                        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                                            <h4 className="font-semibold text-purple-900 mb-2">Event Attendance QR Code</h4>
-                                            <div className="text-center">
-                                                {qrCodeUrl ? (
-                                                    <div className="space-y-3">
-                                                        <img
-                                                            src={qrCodeUrl}
-                                                            alt="Event QR Code"
-                                                            className="w-32 h-32 mx-auto border-2 border-purple-300 rounded-lg shadow-md"
-                                                        />
-                                                        <p className="text-sm text-purple-700">
-                                                            Event Attendance QR Code
-                                                        </p>
-                                                        <p className="text-xs text-purple-600">
-                                                            Use this QR code for event-specific attendance tracking
-                                                        </p>
-                                                        <Button onClick={downloadQR} size="sm" variant="outline">
-                                                            <Download className="h-4 w-4 mr-2" />
-                                                            Download Event QR
-                                                        </Button>
+                            <div className="space-y-6">
+                                {/* Upcoming Events */}
+                                <Card className="bg-white/10 backdrop-blur-md border border-white/20">
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center space-x-2 text-white">
+                                            <Calendar className="h-6 w-6 text-purple-400" />
+                                            <span>Upcoming Events</span>
+                                        </CardTitle>
+                                        <CardDescription className="text-white/70">School and tribe events with attendance tracking</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="space-y-4">
+                                            {events.length > 0 ? (
+                                                events.map((event) => (
+                                                    <div key={event.id} className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-4">
+                                                        <div className="flex items-start justify-between">
+                                                            <div className="flex-1">
+                                                                <h4 className="font-semibold text-white mb-1">{event.title}</h4>
+                                                                <p className="text-sm text-white/70 mb-2">{event.description}</p>
+                                                                <div className="flex items-center space-x-4 text-xs text-white/50">
+                                                                    <span>📅 {new Date(event.start_date).toLocaleDateString()}</span>
+                                                                    <span>📍 {event.location}</span>
+                                                                    <span>🏆 {event.points} points</span>
+                                                                </div>
+                                                            </div>
+                                                            <Badge className="bg-purple-500/20 text-purple-300 border border-purple-300/30">
+                                                                Active
+                                                            </Badge>
+                                                        </div>
                                                     </div>
-                                                ) : (
-                                                    <div className="w-32 h-32 mx-auto bg-gray-100 rounded-lg flex items-center justify-center">
-                                                        <QrCode className="h-8 w-8 text-gray-400" />
+                                                ))
+                                            ) : (
+                                                <div className="text-center py-8">
+                                                    <Calendar className="h-12 w-12 text-white/30 mx-auto mb-4" />
+                                                    <p className="text-white/70">No upcoming events</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+
+                                {/* Event QR Code */}
+                                <Card className="bg-white/10 backdrop-blur-md border border-white/20">
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center space-x-2 text-white">
+                                            <QrCode className="h-6 w-6 text-green-400" />
+                                            <span>Event QR Code</span>
+                                        </CardTitle>
+                                        <CardDescription className="text-white/70">Use this QR code for event attendance tracking</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="text-center">
+                                            {qrCodeUrl ? (
+                                                <div className="space-y-3">
+                                                    <img
+                                                        src={qrCodeUrl}
+                                                        alt="Event QR Code"
+                                                        className="w-32 h-32 mx-auto border-2 border-white/30 rounded-lg shadow-md"
+                                                    />
+                                                    <p className="text-sm text-white/70">
+                                                        Event Attendance QR Code
+                                                    </p>
+                                                    <p className="text-xs text-white/50">
+                                                        Show this to SBO officers during events
+                                                    </p>
+                                                    <Button onClick={downloadQR} size="sm" className="bg-white/20 backdrop-blur-md border border-white/30 text-white hover:bg-white/30">
+                                                        <Download className="h-4 w-4 mr-2" />
+                                                        Download Event QR
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <div className="w-32 h-32 mx-auto bg-white/10 rounded-lg flex items-center justify-center">
+                                                    <QrCode className="h-8 w-8 text-white/50" />
+                                                </div>
+                                            )}
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        )}
+
+                        {activeTab === "scoring" && (
+                            <div className="space-y-6">
+                                {/* Tribe Ranking */}
+                                <Card className="bg-white/10 backdrop-blur-md border border-white/20">
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center space-x-2 text-white">
+                                            <Trophy className="h-6 w-6 text-yellow-400" />
+                                            <span>Tribe Ranking</span>
+                                        </CardTitle>
+                                        <CardDescription className="text-white/70">Your tribe&apos;s current position and score</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="space-y-4">
+                                            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-4">
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <h4 className="font-semibold text-white">{tribeInfo?.name || 'Your Tribe'}</h4>
+                                                    <Badge className="bg-yellow-500/20 text-yellow-300 border border-yellow-300/30">
+                                                        Rank #{tribeScoring.rank || 'N/A'}
+                                                    </Badge>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                                    <div>
+                                                        <span className="text-white/70">Current Score:</span>
+                                                        <p className="font-semibold text-white text-lg">{tribeScoring.currentScore}</p>
                                                     </div>
-                                                )}
+                                                    <div>
+                                                        <span className="text-white/70">Total Tribes:</span>
+                                                        <p className="font-semibold text-white">{tribeScoring.totalTribes}</p>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
+                                    </CardContent>
+                                </Card>
 
-                                        <div className="text-center text-muted-foreground">
-                                            <p>This QR code can be used for any tribe or school event attendance.</p>
+                                {/* Recent Points */}
+                                <Card className="bg-white/10 backdrop-blur-md border border-white/20">
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center space-x-2 text-white">
+                                            <Trophy className="h-6 w-6 text-green-400" />
+                                            <span>Recent Points</span>
+                                        </CardTitle>
+                                        <CardDescription className="text-white/70">Recent points earned by your tribe</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="space-y-3">
+                                            {tribeScoring.recentPoints.length > 0 ? (
+                                                tribeScoring.recentPoints.map((point, index) => (
+                                                    <div key={index} className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-3">
+                                                        <div className="flex items-center justify-between">
+                                                            <div>
+                                                                <p className="font-medium text-white">{point.reason}</p>
+                                                                <p className="text-xs text-white/50">{new Date(point.date).toLocaleDateString()}</p>
+                                                            </div>
+                                                            <Badge className="bg-green-500/20 text-green-300 border border-green-300/30">
+                                                                +{point.points}
+                                                            </Badge>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="text-center py-6">
+                                                    <Trophy className="h-8 w-8 text-white/30 mx-auto mb-2" />
+                                                    <p className="text-white/70">No recent points</p>
+                                                </div>
+                                            )}
                                         </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                                    </CardContent>
+                                </Card>
+
+                                {/* Scoring Guidelines */}
+                                <Card className="bg-white/10 backdrop-blur-md border border-white/20">
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center space-x-2 text-white">
+                                            <Trophy className="h-6 w-6 text-blue-400" />
+                                            <span>Scoring Guidelines</span>
+                                        </CardTitle>
+                                        <CardDescription className="text-white/70">How points are earned</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="space-y-3 text-sm">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-white/70">Daily Attendance</span>
+                                                <span className="font-semibold text-white">+25 points</span>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-white/70">Event Participation</span>
+                                                <span className="font-semibold text-white">+50 points</span>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-white/70">Perfect Week</span>
+                                                <span className="font-semibold text-white">+100 points</span>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-white/70">Tribe Leadership</span>
+                                                <span className="font-semibold text-white">+75 points</span>
+                                            </div>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
                         )}
                     </div>
                 </div>

@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Combobox } from "@/components/ui/combobox";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
-const Sidebar = ({ user, activeTab, setActiveTab }) => {
+const Sidebar = ({ user, activeTab, setActiveTab, isMobile = false }) => {
     const { logout } = useAuthUser();
     const [selectedOption, setSelectedOption] = useState("");
 
@@ -27,7 +28,7 @@ const Sidebar = ({ user, activeTab, setActiveTab }) => {
         { value: "system", label: "System Settings" },
     ];
 
-    return (
+    const sidebarContent = (
         <div className="space-y-6">
             {/* User Profile Card */}
             <Card className="bg-white/10 backdrop-blur-md border border-white/20">
@@ -51,46 +52,53 @@ const Sidebar = ({ user, activeTab, setActiveTab }) => {
                 <CardContent className="p-4">
                     <nav className="space-y-2">
                         <Button
-                            className={`w-full justify-start ${activeTab === "scan" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
+                            className={`w-full justify-start ${activeTab === "scan" ? "bg-white/20 text-white backdrop-blur-md border border-white/30" : "bg-transparent text-white/70 hover:bg-white/10 hover:text-white"}`}
                             onClick={() => setActiveTab("scan")}
                         >
                             <QrCode className="h-4 w-4 mr-2" />
                             QR Scanner
                         </Button>
                         <Button
-                            className={`w-full justify-start ${activeTab === "feed" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
+                            className={`w-full justify-start ${activeTab === "feed" ? "bg-white/20 text-white backdrop-blur-md border border-white/30" : "bg-transparent text-white/70 hover:bg-white/10 hover:text-white"}`}
                             onClick={() => setActiveTab("feed")}
                         >
                             <FileText className="h-4 w-4 mr-2" />
                             Posts Feed
                         </Button>
                         <Button
-                            className={`w-full justify-start ${activeTab === "events" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
+                            className={`w-full justify-start ${activeTab === "events" ? "bg-white/20 text-white backdrop-blur-md border border-white/30" : "bg-transparent text-white/70 hover:bg-white/10 hover:text-white"}`}
                             onClick={() => setActiveTab("events")}
                         >
                             <Calendar className="h-4 w-4 mr-2" />
                             Events
                         </Button>
                         <Button
-                            className={`w-full justify-start ${activeTab === "scoring" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
+                            className={`w-full justify-start ${activeTab === "scoring" ? "bg-white/20 text-white backdrop-blur-md border border-white/30" : "bg-transparent text-white/70 hover:bg-white/10 hover:text-white"}`}
                             onClick={() => setActiveTab("scoring")}
                         >
                             <Trophy className="h-4 w-4 mr-2" />
                             Tribe Scoring
                         </Button>
                         <Button
-                            className={`w-full justify-start ${activeTab === "moderation" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
+                            className={`w-full justify-start ${activeTab === "moderation" ? "bg-white/20 text-white backdrop-blur-md border border-white/30" : "bg-transparent text-white/70 hover:bg-white/10 hover:text-white"}`}
                             onClick={() => setActiveTab("moderation")}
                         >
                             <Shield className="h-4 w-4 mr-2" />
                             Moderation
                         </Button>
                         <Button
-                            className={`w-full justify-start ${activeTab === "reports" ? "bg-white/30 text-white backdrop-blur-md" : "bg-transparent text-white/70 hover:bg-white/10"}`}
+                            className={`w-full justify-start ${activeTab === "reports" ? "bg-white/20 text-white backdrop-blur-md border border-white/30" : "bg-transparent text-white/70 hover:bg-white/10 hover:text-white"}`}
                             onClick={() => setActiveTab("reports")}
                         >
                             <BarChart3 className="h-4 w-4 mr-2" />
                             Reports
+                        </Button>
+                        <Button
+                            className={`w-full justify-start ${activeTab === "qr-generator" ? "bg-white/20 text-white backdrop-blur-md border border-white/30" : "bg-transparent text-white/70 hover:bg-white/10 hover:text-white"}`}
+                            onClick={() => setActiveTab("qr-generator")}
+                        >
+                            <QrCode className="h-4 w-4 mr-2" />
+                            QR Generator
                         </Button>
                     </nav>
                 </CardContent>
@@ -114,6 +122,14 @@ const Sidebar = ({ user, activeTab, setActiveTab }) => {
                 </CardContent>
             </Card>
         </div>
+    );
+
+    return isMobile ? (
+        <ScrollArea className="h-[calc(100vh-120px)]">
+            {sidebarContent}
+        </ScrollArea>
+    ) : (
+        sidebarContent
     );
 };
 

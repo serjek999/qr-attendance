@@ -12,6 +12,7 @@ import { Logo } from "@/components/ui/logo";
 import Link from "next/link";
 import { authUtils } from "@/app/lib/auth";
 import { supabase } from "@/app/lib/supabaseClient";
+import StudentRegistrationCalendar from "./StudentRegistrationCalendar";
 
 const AuthForm = ({ onAuth }) => {
   const [isLoginMode, setIsLoginMode] = useState(true);
@@ -399,15 +400,12 @@ const AuthForm = ({ onAuth }) => {
 
                     <div className="space-y-2">
                       <Label htmlFor="birthdate">Birthdate *</Label>
-                      <Input
-                        id="birthdate"
-                        type="date"
-                        value={registrationData.birthdate}
-                        onChange={(e) => handleRegistrationChange("birthdate", e.target.value)}
-                        required
-                        className="transition-all duration-300 focus:ring-2 focus:ring-primary/20"
+                      <StudentRegistrationCalendar
+                        selectedDate={registrationData.birthdate}
+                        onDateChange={(date) => handleRegistrationChange("birthdate", date)}
+                        className="mx-auto"
                       />
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-muted-foreground text-center">
                         Your password will be: LastName + Birthdate (e.g., Smith2023-01-15)
                       </p>
                     </div>

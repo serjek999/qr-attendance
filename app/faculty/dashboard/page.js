@@ -11,6 +11,7 @@ import Link from "next/link";
 import TribeStats from '../components/TribeStats';
 import PostsFeed from '../components/PostsFeed';
 import NavigationSidebar from '../components/NavigationSidebar';
+import EventsManagement from '@/components/EventsManagement';
 
 const FacultyDashboard = () => {
     const { user, loading, logout } = useAuthUser();
@@ -60,6 +61,7 @@ const FacultyDashboard = () => {
             <NavigationSidebar
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
+                isMobile={isMobile}
             />
         </div>
     );
@@ -79,9 +81,9 @@ const FacultyDashboard = () => {
                                             <Menu className="h-5 w-5" />
                                         </Button>
                                     </SheetTrigger>
-                                    <SheetContent side="left" className="w-80">
+                                    <SheetContent side="left" className="w-80" style={{ backgroundColor: '#13392F' }}>
                                         <SheetHeader>
-                                            <SheetTitle>Faculty Dashboard</SheetTitle>
+                                            <SheetTitle className="text-white">Faculty Dashboard</SheetTitle>
                                         </SheetHeader>
                                         <div className="mt-6">
                                             <NavigationContent />
@@ -131,6 +133,14 @@ const FacultyDashboard = () => {
 
                         {activeTab === "posts" && (
                             <PostsFeed user={user} />
+                        )}
+
+                        {activeTab === "events" && (
+                            <EventsManagement user={user} mode="events" />
+                        )}
+
+                        {activeTab === "scoring" && (
+                            <EventsManagement user={user} mode="scoring" />
                         )}
 
                         {activeTab === "attendance" && (
