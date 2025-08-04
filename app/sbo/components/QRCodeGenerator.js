@@ -16,8 +16,9 @@ const QRCodeGenerator = () => {
     const [qrCodeUrl, setQrCodeUrl] = useState("");
 
     const generateQRCode = () => {
-        const data = JSON.stringify(studentData);
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(data)}`;
+        // Generate QR code with just the student ID for scanner compatibility
+        const qrData = studentData.student_id;
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrData)}`;
         setQrCodeUrl(qrUrl);
     };
 
@@ -49,6 +50,7 @@ const QRCodeGenerator = () => {
                             value={studentData.student_id}
                             onChange={(e) => setStudentData(prev => ({ ...prev, student_id: e.target.value }))}
                             className="bg-white/10 border-white/20 text-white"
+                            placeholder="Enter student ID"
                         />
                     </div>
                     <div>
@@ -58,6 +60,7 @@ const QRCodeGenerator = () => {
                             value={studentData.name}
                             onChange={(e) => setStudentData(prev => ({ ...prev, name: e.target.value }))}
                             className="bg-white/10 border-white/20 text-white"
+                            placeholder="Enter student name"
                         />
                     </div>
                     <div>
@@ -67,6 +70,7 @@ const QRCodeGenerator = () => {
                             value={studentData.tribe}
                             onChange={(e) => setStudentData(prev => ({ ...prev, tribe: e.target.value }))}
                             className="bg-white/10 border-white/20 text-white"
+                            placeholder="Enter tribe name"
                         />
                     </div>
                 </div>
@@ -94,7 +98,9 @@ const QRCodeGenerator = () => {
                             </Button>
                         </div>
                         <div className="text-sm text-white/70">
-                            <p>QR Code Data: {JSON.stringify(studentData)}</p>
+                            <p><strong>QR Code Data:</strong> {studentData.student_id}</p>
+                            <p><strong>Student Name:</strong> {studentData.name}</p>
+                            <p><strong>Tribe:</strong> {studentData.tribe}</p>
                         </div>
                     </div>
                 )}

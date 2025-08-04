@@ -102,12 +102,41 @@ create policy "SBO can view all attendance"
 on attendance_records for select
 using (true);
 
--- Allow SBO officers to insert attendance records
-create policy "SBO can insert attendance"
-on attendance_records for insert
-with check (true);
+-- Fix RLS policies for SBO attendance recording
+-- This script adds policies to allow SBO officers to manage attendance records
 
--- Allow SBO officers to update attendance records
-create policy "SBO can update attendance"
-on attendance_records for update
-using (true); 
+-- Drop existing attendance policies that might be too restrictive
+DROP POLICY IF EXISTS "Students can add their own attendance" ON attendance_records;
+
+-- Create new policies that allow SBO officers to insert attendance records
+CREATE POLICY "SBO can insert attendance records"
+ON attendance_records FOR INSERT
+WITH CHECK (true); -- Allow SBO to insert any attendance record
+
+-- Allow SBO to read all attendance records
+CREATE POLICY "SBO can read all attendance records"
+ON attendance_records FOR SELECT
+USING (true);
+
+-- Allow SBO to update attendance records
+CREATE POLICY "SBO can update attendance records"
+ON attendance_records FOR UPDATE
+USING (true);
+
+-- Keep the existing student policy for reading their own attendance
+CREATE POLICY "Students can read their own attendance"
+ON attendance_records FOR SELECT
+USING (student_id = auth.uid()::uuid);
+
+-- Show current policies
+SELECT 
+    schemaname,
+    tablename,
+    policyname,
+    permissive,
+    roles,
+    cmd,
+    qual,
+    with_check
+FROM pg_policies 
+WHERE tablename = 'attendance_records'; 

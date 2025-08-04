@@ -463,6 +463,10 @@ export const useScanner = () => {
         setScanHistory([]);
     }, []);
 
+    const addScanHistoryEntry = useCallback((scanEntry) => {
+        setScanHistory(prev => [scanEntry, ...prev.slice(0, 9)]);
+    }, []);
+
     return {
         // State
         isScanning,
@@ -477,6 +481,7 @@ export const useScanner = () => {
         stopScanning,
         handleRecordAttendance,
         clearScanHistory,
+        addScanHistoryEntry,
 
         // Event handlers
         onCloseScanner: () => {

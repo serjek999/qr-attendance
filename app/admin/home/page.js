@@ -11,6 +11,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import EventsManagement from '@/components/EventsManagement';
+import TimeRestrictionInfo from '@/components/ui/time-restriction-info';
 import {
     GraduationCap,
     Trophy,
@@ -879,19 +880,25 @@ const AdminHome = () => {
                                         <CardDescription>Generate and view comprehensive system reports</CardDescription>
                                     </CardHeader>
                                     <CardContent>
-                                        <div className="text-center py-8">
-                                            <BarChart3 className="h-16 w-16 text-blue-600 mx-auto mb-4" />
-                                            <h3 className="text-xl font-semibold mb-2">Reports Dashboard</h3>
-                                            <p className="text-muted-foreground mb-4">Access comprehensive system analytics and insights</p>
-                                            <div className="flex space-x-2 justify-center">
-                                                <Button variant="default">
-                                                    <BarChart3 className="h-4 w-4 mr-2" />
-                                                    Generate Report
-                                                </Button>
-                                                <Button variant="outline">
-                                                    <Download className="h-4 w-4 mr-2" />
-                                                    Export Data
-                                                </Button>
+                                        <div className="space-y-6">
+                                            {/* Time Restriction Info */}
+                                            <TimeRestrictionInfo />
+
+                                            {/* Reports Dashboard */}
+                                            <div className="text-center py-8">
+                                                <BarChart3 className="h-16 w-16 text-blue-600 mx-auto mb-4" />
+                                                <h3 className="text-xl font-semibold mb-2">Reports Dashboard</h3>
+                                                <p className="text-muted-foreground mb-4">Access comprehensive system analytics and insights</p>
+                                                <div className="flex space-x-2 justify-center">
+                                                    <Button variant="default">
+                                                        <BarChart3 className="h-4 w-4 mr-2" />
+                                                        Generate Report
+                                                    </Button>
+                                                    <Button variant="outline">
+                                                        <Download className="h-4 w-4 mr-2" />
+                                                        Export Data
+                                                    </Button>
+                                                </div>
                                             </div>
                                         </div>
                                     </CardContent>
