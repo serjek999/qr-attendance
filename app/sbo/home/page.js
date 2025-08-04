@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuthUser } from '@/hooks/useAuthUser';
 import { useScanner } from '@/hooks/useScanner';
 import { useAttendanceStats } from '@/hooks/useAttendanceStats';
+import { useScanHistory } from '@/hooks/useScanHistory';
 import { usePosts } from '@/hooks/usePosts';
 import { useCardAnimation } from '@/hooks/useCardAnimation';
 import { toast } from '@/hooks/use-toast';
@@ -48,17 +49,329 @@ const SboHome = () => {
         isScanning,
         showStudentPopup,
         scannedStudentInfo,
-        scanHistory,
         getCurrentTimeInfo,
         handleRecordAttendance,
-        clearScanHistory,
-        onClosePopup
+        onClosePopup,
+        startFullScreenScanning,
+        stopScanning
     } = useScanner();
 
     const [showScanner, setShowScanner] = useState(false);
+    const [showCustomStudentPopup, setShowCustomStudentPopup] = useState(false);
+    const [customScannedStudentInfo, setCustomScannedStudentInfo] = useState(null);
 
-    const { stats, tribeStats } = useAttendanceStats();
+    const { stats, tribeStats, fetchStats, fetchTribeStats } = useAttendanceStats();
+    const { scanHistory, addScanToHistory, clearScanHistory } = useScanHistory();
     const { posts, pendingPosts } = usePosts();
+
+    // Custom attendance recording function for the popup
+    const handleCustomRecordAttendance = async () => {
+        if (!customScannedStudentInfo) return;
+
+        try {
+            const timeInfo = getCurrentTimeInfo();
+            const currentTime = new Date().toISOString(); // Use full ISO timestamp instead of just time
+
+            const { supabase } = await import('@/app/lib/supabaseClient');
+
+            let attendanceResult = null;
+            let isNewRecord = false;
+
+            if (customScannedStudentInfo.existingAttendance) {
+                // Update existing attendance record
+                const existingRecord = customScannedStudentInfo.existingAttendance;
+                const updateData = {};
+
+                if (timeInfo.isTimeInWindow && !existingRecord.time_in) {
+                    updateData.time_in = currentTime;
+                } else if (timeInfo.isTimeOutWindow && !existingRecord.time_out) {
+                    updateData.time_out = currentTime;
+                }
+
+                if (Object.keys(updateData).length > 0) {
+                    console.log('Updating existing attendance record:', {
+                        recordId: existingRecord.id,
+                        updateData: updateData,
+                        existingRecord: existingRecord
+                    });
+
+                    const { data, error } = await supabase
+                        .from('attendance_records')
+                        .update(updateData)
+                        .eq('id', existingRecord.id)
+                        .select();
+
+                    if (error) {
+                        console.error('Supabase update error:', error);
+                        console.error('Update error details:', {
+                            code: error.code,
+                            message: error.message,
+                            details: error.details,
+                            hint: error.hint
+                        });
+                        throw new Error(`Failed to update attendance: ${error.message}`);
+                    }
+                    attendanceResult = data[0];
+                    console.log('Attendance updated successfully:', attendanceResult);
+                } else {
+                    // No update needed - already has both time_in and time_out
+                    attendanceResult = existingRecord;
+                    console.log('No update needed, attendance already complete');
+                }
+            } else {
+                // Create new attendance record
+                const attendanceData = {
+                    student_id: customScannedStudentInfo.student.id,
+                    tribe_id: customScannedStudentInfo.student.tribe_id,
+                    time_in: timeInfo.isTimeInWindow ? currentTime : null,
+                    time_out: timeInfo.isTimeOutWindow ? currentTime : null
+                    // Remove date field - let database use default current_date
+                };
+
+                console.log('Creating new attendance record:', attendanceData);
+
+                // Try to insert, but handle duplicate key constraint
+                const { data, error } = await supabase
+                    .from('attendance_records')
+                    .insert(attendanceData)
+                    .select();
+
+                if (error) {
+                    // Check if it's a duplicate key constraint error
+                    if (error.code === '23505' && error.message.includes('attendance_records_student_id_date_key')) {
+                        console.log('Duplicate key detected, attempting to update existing record...');
+
+                        // Try to get the existing record and update it
+                        const today = new Date().toISOString().split('T')[0];
+                        const { data: existingRecord, error: fetchError } = await supabase
+                            .from('attendance_records')
+                            .select('*')
+                            .eq('student_id', customScannedStudentInfo.student.id)
+                            .eq('date', today)
+                            .single();
+
+                        if (fetchError) {
+                            console.error('Error fetching existing record:', fetchError);
+                            throw new Error(`Failed to handle duplicate attendance record: ${fetchError.message}`);
+                        }
+
+                        // Update the existing record
+                        const updateData = {};
+                        if (timeInfo.isTimeInWindow && !existingRecord.time_in) {
+                            updateData.time_in = currentTime;
+                        } else if (timeInfo.isTimeOutWindow && !existingRecord.time_out) {
+                            updateData.time_out = currentTime;
+                        }
+
+                        if (Object.keys(updateData).length > 0) {
+                            const { data: updatedData, error: updateError } = await supabase
+                                .from('attendance_records')
+                                .update(updateData)
+                                .eq('id', existingRecord.id)
+                                .select();
+
+                            if (updateError) {
+                                console.error('Error updating existing record:', updateError);
+                                throw new Error(`Failed to update existing attendance: ${updateError.message}`);
+                            }
+
+                            attendanceResult = updatedData[0];
+                            console.log('Successfully updated existing attendance record:', attendanceResult);
+                        } else {
+                            attendanceResult = existingRecord;
+                            console.log('No update needed, attendance already complete');
+                        }
+                    } else {
+                        console.error('Supabase insert error:', error);
+                        console.error('Error details:', {
+                            code: error.code,
+                            message: error.message,
+                            details: error.details,
+                            hint: error.hint
+                        });
+                        throw new Error(`Failed to record attendance: ${error.message}`);
+                    }
+                } else {
+                    attendanceResult = data[0];
+                    isNewRecord = true;
+                    console.log('Attendance created successfully:', attendanceResult);
+                }
+            }
+
+            // Show success message
+            const action = timeInfo.isTimeInWindow ? 'time-in' : 'time-out';
+            const recordType = isNewRecord ? 'recorded' : 'updated';
+
+            toast({
+                title: "Attendance Success",
+                description: `Successfully ${recordType} ${action} for ${customScannedStudentInfo.student.full_name}`,
+            });
+
+            // Add to scan history
+            const newScan = {
+                timestamp: new Date().toISOString(),
+                status: 'success',
+                studentInfo: {
+                    id: student.id,
+                    full_name: student.full_name,
+                    first_name: student.first_name,
+                    last_name: student.last_name,
+                    school_id: student.school_id,
+                    year_level: student.year_level
+                },
+                action: action,
+                recordType: recordType,
+                scanData: qrData,
+                attendanceRecorded: true
+            };
+
+            addScanToHistory(newScan);
+
+            // Refresh attendance stats to update reports
+            await fetchStats('today');
+            await fetchTribeStats();
+
+            // Close the popup
+            setShowCustomStudentPopup(false);
+            setCustomScannedStudentInfo(null);
+
+        } catch (error) {
+            console.error('Error recording attendance:', error);
+            toast({
+                title: "Recording Error",
+                description: error.message || "Failed to record attendance. Please try again.",
+                variant: "destructive"
+            });
+        }
+    };
+
+    // Custom close popup function
+    const handleCloseCustomPopup = () => {
+        setShowCustomStudentPopup(false);
+        setCustomScannedStudentInfo(null);
+    };
+
+    // Handle QR scan from FixedQRScanner
+    const handleQRScan = async (qrData) => {
+        try {
+            console.log('QR Code scanned:', qrData);
+
+            // Clean the scanned data
+            const cleanData = qrData.trim();
+
+            // Import supabase client
+            const { supabase } = await import('@/app/lib/supabaseClient');
+
+            // Find student by school_id first, then by id
+            let student = null;
+            let { data: studentData, error: studentError } = await supabase
+                .from('students')
+                .select(`
+                    *,
+                    tribes (
+                        id,
+                        name
+                    )
+                `)
+                .eq('school_id', cleanData)
+                .single();
+
+            if (studentError) {
+                // Try finding by id
+                const { data: studentById, error: idError } = await supabase
+                    .from('students')
+                    .select(`
+                        *,
+                        tribes (
+                            id,
+                            name
+                        )
+                    `)
+                    .eq('id', cleanData)
+                    .single();
+
+                if (idError) {
+                    throw new Error(`Student not found with ID: ${cleanData}. Please check if the student exists in the database.`);
+                }
+                student = studentById;
+            } else {
+                student = studentData;
+            }
+
+            // Check if student already has attendance for today
+            const today = new Date().toISOString().split('T')[0];
+
+            // Use a more robust query to find today's attendance
+            let { data: existingAttendance, error: attendanceError } = await supabase
+                .from('attendance_records')
+                .select('*')
+                .eq('student_id', student.id)
+                .gte('date', today)
+                .lt('date', new Date(new Date(today).getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+                .maybeSingle(); // Use maybeSingle instead of single to avoid errors
+
+            if (attendanceError) {
+                console.error('Error checking existing attendance:', attendanceError);
+                // Continue with null existingAttendance
+                existingAttendance = null;
+            }
+
+            console.log('Attendance check result:', {
+                today: today,
+                student_id: student.id,
+                existingAttendance: existingAttendance,
+                attendanceError: attendanceError
+            });
+
+            console.log('Student data:', {
+                id: student.id,
+                full_name: student.full_name,
+                school_id: student.school_id,
+                tribe_id: student.tribe_id
+            });
+
+            console.log('Existing attendance check:', {
+                today: today,
+                student_id: student.id,
+                existingAttendance: existingAttendance,
+                attendanceError: attendanceError
+            });
+
+            // Prepare student info for popup
+            const studentInfo = {
+                student,
+                existingAttendance: existingAttendance || null
+            };
+
+            console.log('Setting custom student info:', studentInfo);
+
+            // Show student popup instead of recording attendance immediately
+            setCustomScannedStudentInfo(studentInfo);
+            setShowCustomStudentPopup(true);
+            setShowScanner(false);
+
+        } catch (error) {
+            console.error('Scan error:', error);
+            setShowScanner(false);
+
+            // Save failed scan to history
+            const failedScan = {
+                timestamp: new Date().toISOString(),
+                status: 'failed',
+                error: error.message || "Failed to process QR code",
+                scanData: qrData,
+                attendanceRecorded: false
+            };
+
+            addScanToHistory(failedScan);
+
+            toast({
+                title: "Scan Error",
+                description: error.message || "Failed to process QR code",
+                variant: "destructive"
+            });
+        }
+    };
 
     if (loading) {
         return (
@@ -260,16 +573,7 @@ const SboHome = () => {
             {/* Modals */}
             {showScanner && (
                 <FixedQRScanner
-                    onScan={(qrData) => {
-                        console.log('QR Code scanned:', qrData);
-                        // Handle the scanned QR data
-                        setShowScanner(false);
-                        // You can add logic here to process the scanned data
-                        toast({
-                            title: "QR Code Scanned",
-                            description: `Scanned: ${qrData.name} (${qrData.student_id})`,
-                        });
-                    }}
+                    onScan={handleQRScan}
                     onClose={() => setShowScanner(false)}
                 />
             )}
@@ -279,6 +583,14 @@ const SboHome = () => {
                 scannedStudentInfo={scannedStudentInfo}
                 onClose={onClosePopup}
                 onRecordAttendance={handleRecordAttendance}
+            />
+
+            {/* Custom Student Popup for SBO Scanner */}
+            <StudentPopup
+                showStudentPopup={showCustomStudentPopup}
+                scannedStudentInfo={customScannedStudentInfo}
+                onClose={handleCloseCustomPopup}
+                onRecordAttendance={handleCustomRecordAttendance}
             />
         </div>
     );
