@@ -6,6 +6,7 @@ import { useScanner } from '@/hooks/useScanner';
 import { useAttendanceStats } from '@/hooks/useAttendanceStats';
 import { useScanHistory } from '@/hooks/useScanHistory';
 import { usePosts } from '@/hooks/usePosts';
+import eventLogger from '@/lib/eventLogger';
 import { useCardAnimation } from '@/hooks/useCardAnimation';
 import { toast } from '@/hooks/use-toast';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -113,6 +114,9 @@ const SboHome = () => {
                     }
                     attendanceResult = data[0];
                     console.log('Attendance updated successfully:', attendanceResult);
+
+                    // Log attendance updated
+                    await eventLogger.logAttendanceRecorded(student.id, student.tribe_id, attendanceResult.id, false);
                 } else {
                     // No update needed - already has both time_in and time_out
                     attendanceResult = existingRecord;
@@ -177,6 +181,9 @@ const SboHome = () => {
 
                             attendanceResult = updatedData[0];
                             console.log('Successfully updated existing attendance record:', attendanceResult);
+
+                            // Log duplicate key handled
+                            await eventLogger.logDuplicateKeyHandled(student.id, student.tribe_id, attendanceResult.id);
                         } else {
                             attendanceResult = existingRecord;
                             console.log('No update needed, attendance already complete');
@@ -195,6 +202,9 @@ const SboHome = () => {
                     attendanceResult = data[0];
                     isNewRecord = true;
                     console.log('Attendance created successfully:', attendanceResult);
+
+                    // Log attendance recorded
+                    await eventLogger.logAttendanceRecorded(student.id, student.tribe_id, attendanceResult.id, true);
                 }
             }
 
@@ -256,6 +266,9 @@ const SboHome = () => {
         try {
             console.log('QR Code scanned:', qrData);
 
+            // Log QR scan attempt
+            await eventLogger.logQRScanAttempt(qrData, false);
+
             // Clean the scanned data
             const cleanData = qrData.trim();
 
@@ -291,6 +304,8 @@ const SboHome = () => {
                     .single();
 
                 if (idError) {
+                    // Log student not found
+                    await eventLogger.logStudentNotFound(cleanData);
                     throw new Error(`Student not found with ID: ${cleanData}. Please check if the student exists in the database.`);
                 }
                 student = studentById;
@@ -350,9 +365,15 @@ const SboHome = () => {
             setShowCustomStudentPopup(true);
             setShowScanner(false);
 
+            // Log successful QR scan
+            await eventLogger.logQRScanSuccess(cleanData, student.id, student.tribe_id);
+
         } catch (error) {
             console.error('Scan error:', error);
             setShowScanner(false);
+
+            // Log QR scan failure
+            await eventLogger.logQRScanFailure(qrData, error.message || "Failed to process QR code");
 
             // Save failed scan to history
             const failedScan = {
